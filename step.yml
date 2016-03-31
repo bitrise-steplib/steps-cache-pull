@@ -1,0 +1,42 @@
+title: "Bitrise.io - Cache Pull/Download"
+summary: WIP
+description: |-
+  WIP
+website: https://github.com/bitrise-steplib/steps-cache-pull
+source_code_url: https://github.com/bitrise-steplib/steps-cache-pull.git
+support_url: https://github.com/bitrise-steplib/steps-cache-pull/issues
+host_os_tags:
+  - osx-10.10
+  - ubuntu-14.04
+project_type_tags: []
+type_tags:
+  - bitrise.io
+  - cache
+is_requires_admin_user: false
+is_always_run: false
+is_skippable: true
+deps:
+  apt_get:
+  - name: rsync
+  - name: tar
+run_if: ".IsCI"
+inputs:
+  - workdir: $BITRISE_SOURCE_DIR
+    opts:
+      title: Working directory path
+      summary: Working directory path
+      description: |-
+        Working directory path - should be an absolute path.
+  - cache_api_url: $BITRISE_CACHE_API_URL
+    opts:
+      title: "Cache API url"
+      summary: Cache API url
+      description: |-
+        Cache API url
+      is_required: true
+outputs:
+  - BITRISE_CACHE_INFO_PATH:
+    opts:
+      title: Bitrise Cache-Info (JSON) file path
+      description: |-
+        Path to the uncompressed cache-info.json
