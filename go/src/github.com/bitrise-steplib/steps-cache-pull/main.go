@@ -20,17 +20,21 @@ import (
 	"github.com/bitrise-io/go-utils/pathutil"
 )
 
+var (
+	gIsDebugMode = false
+)
+
 // StepParamsModel ...
 type StepParamsModel struct {
 	CacheDownloadURL string
+	IsDebugMode      bool
 }
 
 // CreateStepParamsFromEnvs ...
 func CreateStepParamsFromEnvs() (StepParamsModel, error) {
-	cacheDownloadURL := os.Getenv("cache_download_url")
-
 	stepParams := StepParamsModel{
-		CacheDownloadURL: cacheDownloadURL,
+		CacheDownloadURL: os.Getenv("cache_download_url"),
+		IsDebugMode:      os.Getenv("is_debug_mode") == "true",
 	}
 
 	return stepParams, nil
@@ -114,17 +118,23 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 	if err != nil {
 		return "", fmt.Errorf(" [!] Failed to create temp directory for cache infos: %s", err)
 	}
-	log.Printf("=> tmpCacheInfosDirPath: %#v", tmpCacheInfosDirPath)
+	if gIsDebugMode {
+		log.Printf("=> tmpCacheInfosDirPath: %#v", tmpCacheInfosDirPath)
+	}
 
 	tarCmdParams := []string{"-xvzf", cacheFilePath}
-	log.Printf(" $ tar %s", tarCmdParams)
+	if gIsDebugMode {
+		log.Printf(" $ tar %s", tarCmdParams)
+	}
 	if fullOut, err := cmdex.RunCommandInDirAndReturnCombinedStdoutAndStderr(tmpCacheInfosDirPath, "tar", tarCmdParams...); err != nil {
 		log.Printf(" [!] Failed to uncompress cache archive, full output (stdout & stderr) was: %s", fullOut)
 		return "", fmt.Errorf("Failed to uncompress cache archive, error was: %s", err)
 	}
 
 	for _, aCacheContentInfo := range cacheInfo.Contents {
-		log.Printf(" * aCacheContentInfo: %#v", aCacheContentInfo)
+		if gIsDebugMode {
+			log.Printf(" * aCacheContentInfo: %#v", aCacheContentInfo)
+		}
 		srcPath := filepath.Join(tmpCacheInfosDirPath, aCacheContentInfo.RelativePathInArchive)
 		targetPath := aCacheContentInfo.DestinationPath
 
@@ -135,7 +145,7 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 			continue
 		}
 
-		log.Printf("   [MOVE]: %s => %s", srcPath, targetPath)
+		log.Printf(" [MOVE]: %s => %s", srcPath, targetPath)
 		if err := os.Rename(srcPath, targetPath); err != nil {
 			log.Printf(" [!] Failed to move cache item (%s) to it's place: %s", srcPath, err)
 			continue
@@ -203,6 +213,10 @@ func main() {
 	if err != nil {
 		log.Fatalf(" [!] Input error : %s", err)
 	}
+	gIsDebugMode = stepParams.IsDebugMode
+	if gIsDebugMode {
+		log.Printf("=> stepParams: %#v", stepParams)
+	}
 	if stepParams.CacheDownloadURL == "" {
 		log.Println(" (i) No Cache Download URL specified, there's no cache to use, exiting.")
 		return
@@ -212,17 +226,23 @@ func main() {
 	// Download Cache Archive
 	//
 
+	log.Println("=> Downloading Cache ...")
 	cacheTempDir, err := pathutil.NormalizedOSTempDirPath("bitrise-cache")
 	if err != nil {
 		log.Fatalf(" [!] Failed to create temp directory for cache download: %s", err)
 	}
-	log.Printf("=> cacheTempDir: %s", cacheTempDir)
+	if gIsDebugMode {
+		log.Printf("=> cacheTempDir: %s", cacheTempDir)
+	}
 	cacheArchiveFilePath := filepath.Join(cacheTempDir, "cache.tar.gz")
 	if err := downloadFileWithRetry(stepParams.CacheDownloadURL, cacheArchiveFilePath); err != nil {
 		log.Fatalf(" [!] Failed to download cache archive: %s", err)
 	}
 
-	log.Printf("=> cacheArchiveFilePath: %s", cacheArchiveFilePath)
+	if gIsDebugMode {
+		log.Printf("=> cacheArchiveFilePath: %s", cacheArchiveFilePath)
+	}
+	log.Println("=> Downloading Cache [DONE]")
 
 	//
 	// Read Cache Info from archive
@@ -231,11 +251,14 @@ func main() {
 	if err != nil {
 		log.Fatalf(" [!] Failed to read from Archive file: %s", err)
 	}
-	log.Printf("=> cacheInfoFromArchive: %#v", cacheInfoFromArchive)
+	if gIsDebugMode {
+		log.Printf("=> cacheInfoFromArchive: %#v", cacheInfoFromArchive)
+	}
 
 	//
 	// Uncompress cache
 	//
+	log.Println("=> Uncompressing Cache ...")
 	cacheDirPth, err := uncompressCaches(cacheArchiveFilePath, cacheInfoFromArchive)
 	if err != nil {
 		log.Fatalf(" [!] Failed to uncompress caches: %s", err)
@@ -246,6 +269,7 @@ func main() {
 	} else if !isExist {
 		log.Fatalln(" [!] Cache Info JSON not found in uncompressed cache data")
 	}
+	log.Println("=> Uncompressing Cache [DONE]")
 
 	//
 	// Save & expose the Cache Info JSON
@@ -270,6 +294,9 @@ func main() {
 	if err := exportEnvironmentWithEnvman("BITRISE_CACHE_INFO_PATH", cacheInfoJSONFilePath); err != nil {
 		log.Fatalf(" [!] Failed to export Cache Info YML path with envman: %s", err)
 	}
+	if gIsDebugMode {
+		log.Printf(" (i) $BITRISE_CACHE_INFO_PATH=%s", cacheInfoJSONFilePath)
+	}
 
-	log.Println("=> DONE")
+	log.Println("=> Finished")
 }

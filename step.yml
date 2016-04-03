@@ -27,6 +27,16 @@ inputs:
       summary: Working directory path
       description: |-
         Working directory path - should be an absolute path.
+  - is_debug_mode: "false"
+    opts:
+      title: "Debug mode?"
+      summary: "If debug mode is enabled the step will print verbose logs"
+      description: |-
+        If debug mode is enabled the step will print verbose logs
+      is_required: true
+      value_options:
+      - "true"
+      - "false"
   - cache_download_url: $BITRISE_CACHE_DOWNLOAD_URL
     opts:
       title: "Cache Download URL"
@@ -34,6 +44,7 @@ inputs:
       description: |-
         Cache Download URL
       is_required: true
+      is_dont_change_value: true
 outputs:
   - BITRISE_CACHE_INFO_PATH:
     opts:

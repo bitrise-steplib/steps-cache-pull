@@ -42,6 +42,8 @@ workflows:
         run_if: true
         is_skippable: false
         inputs:
+        - is_debug_mode: "false"
+        - workdir: $BITRISE_SOURCE_DIR
         - cache_download_url: $BITRISE_CACHE_DOWNLOAD_URL
 
   go-dep-update:
