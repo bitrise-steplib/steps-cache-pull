@@ -7,15 +7,34 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/bitrise-io/go-utils/cmdex"
 	"github.com/bitrise-io/go-utils/pathutil"
 )
+
+// StepParamsModel ...
+type StepParamsModel struct {
+	CacheDownloadURL string
+}
+
+// CreateStepParamsFromEnvs ...
+func CreateStepParamsFromEnvs() (StepParamsModel, error) {
+	cacheDownloadURL := os.Getenv("cache_download_url")
+
+	stepParams := StepParamsModel{
+		CacheDownloadURL: cacheDownloadURL,
+	}
+
+	return stepParams, nil
+}
 
 // CacheContentModel ...
 type CacheContentModel struct {
@@ -93,7 +112,7 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 
 	tmpCacheInfosDirPath, err := pathutil.NormalizedOSTempDirPath("")
 	if err != nil {
-		log.Fatalf(" [!] Failed to create temp directory for cache infos: %s", err)
+		return "", fmt.Errorf(" [!] Failed to create temp directory for cache infos: %s", err)
 	}
 	log.Printf("=> tmpCacheInfosDirPath: %#v", tmpCacheInfosDirPath)
 
@@ -116,7 +135,7 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 			continue
 		}
 
-		log.Printf("   MOVE: %s => %s", srcPath, targetPath)
+		log.Printf("   [MOVE]: %s => %s", srcPath, targetPath)
 		if err := os.Rename(srcPath, targetPath); err != nil {
 			log.Printf(" [!] Failed to move cache item (%s) to it's place: %s", srcPath, err)
 			continue
@@ -126,18 +145,83 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 	return tmpCacheInfosDirPath, nil
 }
 
+func downloadFile(url string, localPath string) error {
+	out, err := os.Create(localPath)
+	if err != nil {
+		return fmt.Errorf("Failed to open the local cache file for write: %s", err)
+	}
+	defer func() {
+		if err := out.Close(); err != nil {
+			log.Printf(" [!] Failed to close Archive download file (%s): %s", localPath, err)
+		}
+	}()
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("Failed to create cache download request: %s", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf(" [!] Failed to close Archive download response body: %s", err)
+		}
+	}()
+
+	if resp.StatusCode != 200 {
+		responseBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf(" (!) Failed to read response body: %s", err)
+		}
+		log.Printf(" ==> (!) Response content: %s", responseBytes)
+		return fmt.Errorf("Failed to download archive - non success response code: %d", resp.StatusCode)
+	}
+
+	// Writer the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return fmt.Errorf("Failed to save cache content into file: %s", err)
+	}
+
+	return nil
+}
+
+func downloadFileWithRetry(url string, localPath string) error {
+	if err := downloadFile(url, localPath); err != nil {
+		fmt.Println()
+		log.Printf(" ===> (!) First download attempt failed, retrying...")
+		fmt.Println()
+		time.Sleep(3000 * time.Millisecond)
+		return downloadFile(url, localPath)
+	}
+	return nil
+}
+
 func main() {
 	log.Println("Cache pull...")
+
+	stepParams, err := CreateStepParamsFromEnvs()
+	if err != nil {
+		log.Fatalf(" [!] Input error : %s", err)
+	}
+	if stepParams.CacheDownloadURL == "" {
+		log.Println(" (i) No Cache Download URL specified, there's no cache to use, exiting.")
+		return
+	}
 
 	//
 	// Download Cache Archive
 	//
 
-	// TODO: WIP
-	cacheArchiveFilePath, err := pathutil.AbsPath("./cache.tar.gz")
+	cacheTempDir, err := pathutil.NormalizedOSTempDirPath("bitrise-cache")
 	if err != nil {
-		log.Fatalf(" [!] Failed to get absolute path of cache archive: %s", err)
+		log.Fatalf(" [!] Failed to create temp directory for cache download: %s", err)
 	}
+	log.Printf("=> cacheTempDir: %s", cacheTempDir)
+	cacheArchiveFilePath := filepath.Join(cacheTempDir, "cache.tar.gz")
+	if err := downloadFileWithRetry(stepParams.CacheDownloadURL, cacheArchiveFilePath); err != nil {
+		log.Fatalf(" [!] Failed to download cache archive: %s", err)
+	}
+
 	log.Printf("=> cacheArchiveFilePath: %s", cacheArchiveFilePath)
 
 	//

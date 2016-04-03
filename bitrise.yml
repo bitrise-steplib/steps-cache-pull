@@ -4,7 +4,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 app:
   envs:
   # define these in your .bitrise.secrets.yml
-  - A_SECRET_PARAM: $A_SECRET_PARAM
+  - BITRISE_CACHE_DOWNLOAD_URL: $BITRISE_CACHE_DOWNLOAD_URL
 
 workflows:
   test:
@@ -41,7 +41,8 @@ workflows:
         title: Step Test
         run_if: true
         is_skippable: false
-        inputs: []
+        inputs:
+        - cache_download_url: $BITRISE_CACHE_DOWNLOAD_URL
 
   go-dep-update:
     steps:
