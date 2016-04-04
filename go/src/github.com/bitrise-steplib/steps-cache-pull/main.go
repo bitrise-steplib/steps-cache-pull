@@ -122,13 +122,16 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 		log.Printf("=> tmpCacheInfosDirPath: %#v", tmpCacheInfosDirPath)
 	}
 
-	tarCmdParams := []string{"-xvzf", cacheFilePath}
-	if gIsDebugMode {
-		log.Printf(" $ tar %s", tarCmdParams)
-	}
-	if fullOut, err := cmdex.RunCommandInDirAndReturnCombinedStdoutAndStderr(tmpCacheInfosDirPath, "tar", tarCmdParams...); err != nil {
-		log.Printf(" [!] Failed to uncompress cache archive, full output (stdout & stderr) was: %s", fullOut)
-		return "", fmt.Errorf("Failed to uncompress cache archive, error was: %s", err)
+	// uncompress the archive
+	{
+		tarCmdParams := []string{"-xvzf", cacheFilePath}
+		if gIsDebugMode {
+			log.Printf(" $ tar %s", tarCmdParams)
+		}
+		if fullOut, err := cmdex.RunCommandInDirAndReturnCombinedStdoutAndStderr(tmpCacheInfosDirPath, "tar", tarCmdParams...); err != nil {
+			log.Printf(" [!] Failed to uncompress cache archive, full output (stdout & stderr) was: %s", fullOut)
+			return "", fmt.Errorf("Failed to uncompress cache archive, error was: %s", err)
+		}
 	}
 
 	for _, aCacheContentInfo := range cacheInfo.Contents {
@@ -138,17 +141,49 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 		srcPath := filepath.Join(tmpCacheInfosDirPath, aCacheContentInfo.RelativePathInArchive)
 		targetPath := aCacheContentInfo.DestinationPath
 
-		// create required target path
-		targetBaseDir := filepath.Dir(targetPath)
-		if err := os.MkdirAll(targetBaseDir, 0755); err != nil {
-			log.Printf(" [!] Failed to create base path (%s) for cache item (%s): %s", targetBaseDir, srcPath, err)
+		isExist, err := pathutil.IsPathExists(targetPath)
+		if err != nil {
+			log.Printf(" [!] Failed to check whether target path (%s) exists: %s", targetPath, err)
 			continue
 		}
+		if isExist {
+			// use rsync instead of rename
+			fileInfo, err := os.Stat(srcPath)
+			if err != nil {
+				log.Printf(" [!] Failed to get File Info of cache item source (%s): %s", srcPath, err)
+				continue
+			}
 
-		log.Printf(" [MOVE]: %s => %s", srcPath, targetPath)
-		if err := os.Rename(srcPath, targetPath); err != nil {
-			log.Printf(" [!] Failed to move cache item (%s) to it's place: %s", srcPath, err)
-			continue
+			rsyncSrcPth := filepath.Clean(srcPath)
+			rsyncTargetPth := filepath.Clean(targetPath)
+			if fileInfo.IsDir() {
+				rsyncSrcPth = rsyncSrcPth + "/"
+				rsyncTargetPth = rsyncTargetPth + "/"
+			}
+			rsyncCmdParams := []string{"-avh", rsyncSrcPth, rsyncTargetPth}
+			if gIsDebugMode {
+				log.Printf(" $ rsync %s", rsyncCmdParams)
+			}
+
+			log.Printf(" [RSYNC]: %s => %s", rsyncSrcPth, rsyncTargetPth)
+			if fullOut, err := cmdex.RunCommandAndReturnCombinedStdoutAndStderr("rsync", rsyncCmdParams...); err != nil {
+				log.Printf(" [!] Failed to rsync cache item (%s) to it's place: %s", srcPath, err)
+				log.Printf("     Full output (stdout & stderr) was: %s", fullOut)
+				continue
+			}
+		} else {
+			// create required target path
+			targetBaseDir := filepath.Dir(targetPath)
+			if err := os.MkdirAll(targetBaseDir, 0755); err != nil {
+				log.Printf(" [!] Failed to create base path (%s) for cache item (%s): %s", targetBaseDir, srcPath, err)
+				continue
+			}
+
+			log.Printf(" [MOVE]: %s => %s", srcPath, targetPath)
+			if err := os.Rename(srcPath, targetPath); err != nil {
+				log.Printf(" [!] Failed to move cache item (%s) to it's place: %s", srcPath, err)
+				continue
+			}
 		}
 	}
 
