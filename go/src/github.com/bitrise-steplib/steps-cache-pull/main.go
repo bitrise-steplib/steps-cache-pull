@@ -167,7 +167,7 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 
 			log.Printf(" [RSYNC]: %s => %s", rsyncSrcPth, rsyncTargetPth)
 			if fullOut, err := cmdex.RunCommandAndReturnCombinedStdoutAndStderr("rsync", rsyncCmdParams...); err != nil {
-				log.Printf(" [!] Failed to rsync cache item (%s) to it's place: %s", srcPath, err)
+				log.Printf(" [!] Failed to rsync cache item (%s) to it's place (%s): %s", srcPath, targetPath, err)
 				log.Printf("     Full output (stdout & stderr) was: %s", fullOut)
 				continue
 			}
@@ -179,11 +179,27 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 				continue
 			}
 
+			// move the file to its target path
+
+			// NOTE: we use `mv` to move it instead of Go's `os.Rename`,
+			//  because `mv` can move files between separate devices/drives, by using copy&delete.
+			//  This is primarily an issue on the Docker stacks,
+			//  where shared folders are treated as separate devices, and `os.Rename` would fail.
+			mvCmdParams := []string{srcPath, targetPath}
+			if gIsDebugMode {
+				log.Printf(" $ mv %s", mvCmdParams)
+			}
+
 			log.Printf(" [MOVE]: %s => %s", srcPath, targetPath)
-			if err := os.Rename(srcPath, targetPath); err != nil {
-				log.Printf(" [!] Failed to move cache item (%s) to it's place: %s", srcPath, err)
+			if fullOut, err := cmdex.RunCommandAndReturnCombinedStdoutAndStderr("mv", mvCmdParams...); err != nil {
+				log.Printf(" [!] Failed to mv cache item (%s) to it's place (%s): %s", srcPath, targetPath, err)
+				log.Printf("     Full output (stdout & stderr) was: %s", fullOut)
 				continue
 			}
+			// if err := os.Rename(srcPath, targetPath); err != nil {
+			// 	log.Printf(" [!] Failed to move cache item (%s) to it's place: %s", srcPath, err)
+			// 	continue
+			// }
 		}
 	}
 
