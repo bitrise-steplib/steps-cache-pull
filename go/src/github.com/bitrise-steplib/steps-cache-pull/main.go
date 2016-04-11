@@ -140,6 +140,12 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 		}
 		srcPath := filepath.Join(tmpCacheInfosDirPath, aCacheContentInfo.RelativePathInArchive)
 		targetPath := aCacheContentInfo.DestinationPath
+		absTargetPth, err := pathutil.AbsPath(targetPath)
+		if err != nil {
+			log.Printf(" [!] Failed to get Absolute File Path for Cache Item destination (%s): %s", targetPath, err)
+			continue
+		}
+		targetPath = absTargetPth
 
 		isExist, err := pathutil.IsPathExists(targetPath)
 		if err != nil {
