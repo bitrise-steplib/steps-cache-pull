@@ -4,7 +4,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 app:
   envs:
   # define these in your .bitrise.secrets.yml
-  - BITRISE_CACHE_DOWNLOAD_URL: $BITRISE_CACHE_DOWNLOAD_URL
+  - BITRISE_CACHE_API_URL: $BITRISE_CACHE_API_URL
 
 workflows:
   test:
@@ -44,7 +44,7 @@ workflows:
         inputs:
         - is_debug_mode: "false"
         - workdir: $BITRISE_SOURCE_DIR
-        - cache_download_url: $BITRISE_CACHE_DOWNLOAD_URL
+        - cache_api_url: $BITRISE_CACHE_API_URL
 
   go-dep-update:
     steps:

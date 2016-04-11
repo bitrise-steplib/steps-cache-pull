@@ -26,15 +26,15 @@ var (
 
 // StepParamsModel ...
 type StepParamsModel struct {
-	CacheDownloadURL string
-	IsDebugMode      bool
+	CacheAPIURL string
+	IsDebugMode bool
 }
 
 // CreateStepParamsFromEnvs ...
 func CreateStepParamsFromEnvs() (StepParamsModel, error) {
 	stepParams := StepParamsModel{
-		CacheDownloadURL: os.Getenv("cache_download_url"),
-		IsDebugMode:      os.Getenv("is_debug_mode") == "true",
+		CacheAPIURL: os.Getenv("cache_api_url"),
+		IsDebugMode: os.Getenv("is_debug_mode") == "true",
 	}
 
 	return stepParams, nil
@@ -246,13 +246,67 @@ func downloadFile(url string, localPath string) error {
 	return nil
 }
 
-func downloadFileWithRetry(url string, localPath string) error {
-	if err := downloadFile(url, localPath); err != nil {
+// GenerateDownloadURLRespModel ...
+type GenerateDownloadURLRespModel struct {
+	DownloadURL string `json:"download_url"`
+}
+
+func getCacheDownloadURL(cacheAPIURL string) (string, error) {
+	req, err := http.NewRequest("GET", cacheAPIURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("Failed to create request: %s", err)
+	}
+	// req.Header.Set("Content-Type", "application/json")
+	// req.Header.Set("Api-Token", apiToken)
+	// req.Header.Set("X-Bitrise-Event", "hook")
+
+	client := &http.Client{
+		Timeout: 20 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("Failed to send request: %s", err)
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf(" [!] Exception: Failed to close response body, error: %s", err)
+		}
+	}()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("Request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 202 {
+		return "", fmt.Errorf("Download URL was rejected (http-code:%d): %s", resp.StatusCode, body)
+	}
+
+	var respModel GenerateDownloadURLRespModel
+	if err := json.Unmarshal(body, &respModel); err != nil {
+		return "", fmt.Errorf("Request sent, but failed to parse JSON response (http-code:%d): %s", resp.StatusCode, body)
+	}
+
+	if respModel.DownloadURL == "" {
+		return "", fmt.Errorf("Request sent, but Download URL is empty (http-code:%d): %s", resp.StatusCode, body)
+	}
+
+	return respModel.DownloadURL, nil
+}
+
+func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
+	downloadURL, err := getCacheDownloadURL(cacheAPIURL)
+	if err != nil {
+		return fmt.Errorf("Failed to generate Download URL: %s", err)
+	}
+	log.Printf("   downloadURL: %s", downloadURL)
+
+	if err := downloadFile(downloadURL, localPath); err != nil {
 		fmt.Println()
 		log.Printf(" ===> (!) First download attempt failed, retrying...")
 		fmt.Println()
 		time.Sleep(3000 * time.Millisecond)
-		return downloadFile(url, localPath)
+		return downloadFile(downloadURL, localPath)
 	}
 	return nil
 }
@@ -268,7 +322,7 @@ func main() {
 	if gIsDebugMode {
 		log.Printf("=> stepParams: %#v", stepParams)
 	}
-	if stepParams.CacheDownloadURL == "" {
+	if stepParams.CacheAPIURL == "" {
 		log.Println(" (i) No Cache Download URL specified, there's no cache to use, exiting.")
 		return
 	}
@@ -286,7 +340,7 @@ func main() {
 		log.Printf("=> cacheTempDir: %s", cacheTempDir)
 	}
 	cacheArchiveFilePath := filepath.Join(cacheTempDir, "cache.tar.gz")
-	if err := downloadFileWithRetry(stepParams.CacheDownloadURL, cacheArchiveFilePath); err != nil {
+	if err := downloadFileWithRetry(stepParams.CacheAPIURL, cacheArchiveFilePath); err != nil {
 		log.Fatalf(" [!] Failed to download cache archive: %s", err)
 	}
 

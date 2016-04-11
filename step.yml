@@ -37,12 +37,12 @@ inputs:
       value_options:
       - "true"
       - "false"
-  - cache_download_url: $BITRISE_CACHE_DOWNLOAD_URL
+  - cache_api_url: $BITRISE_CACHE_API_URL
     opts:
-      title: "Cache Download URL"
-      summary: "Cache Download URL"
+      title: "Cache API URL"
+      summary: "Cache API URL"
       description: |-
-        Cache Download URL
+        Cache API URL
       is_required: true
       is_dont_change_value: true
 outputs:
