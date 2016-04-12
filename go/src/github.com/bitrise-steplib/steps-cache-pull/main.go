@@ -305,7 +305,7 @@ func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
 	if err != nil {
 		return fmt.Errorf("Failed to generate Download URL: %s", err)
 	}
-	log.Printf("   downloadURL: %s", downloadURL)
+	log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
 
 	if err := downloadFile(downloadURL, localPath); err != nil {
 		fmt.Println()
@@ -329,7 +329,7 @@ func main() {
 		log.Printf("=> stepParams: %#v", stepParams)
 	}
 	if stepParams.CacheAPIURL == "" {
-		log.Println(" (i) No Cache Download URL specified, there's no cache to use, exiting.")
+		log.Println(" (i) No Cache API URL specified, there's no cache to use, exiting.")
 		return
 	}
 
