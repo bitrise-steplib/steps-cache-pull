@@ -45,6 +45,12 @@ workflows:
         - is_debug_mode: "false"
         - workdir: $BITRISE_SOURCE_DIR
         - cache_api_url: $BITRISE_CACHE_API_URL
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            echo "BITRISE_CACHE_INFO_PATH: $BITRISE_CACHE_INFO_PATH"
 
   go-dep-update:
     steps:

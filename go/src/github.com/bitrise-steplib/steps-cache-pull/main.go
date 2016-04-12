@@ -305,7 +305,9 @@ func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
 	if err != nil {
 		return fmt.Errorf("Failed to generate Download URL: %s", err)
 	}
-	log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
+	if gIsDebugMode {
+		log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
+	}
 
 	if err := downloadFile(downloadURL, localPath); err != nil {
 		fmt.Println()
