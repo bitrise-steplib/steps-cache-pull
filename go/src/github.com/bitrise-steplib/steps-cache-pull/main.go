@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"encoding/json"
 	"errors"
@@ -48,8 +49,9 @@ type CacheContentModel struct {
 
 // CacheInfosModel ...
 type CacheInfosModel struct {
-	Fingerprint string              `json:"fingerprint"`
-	Contents    []CacheContentModel `json:"cache_contents"`
+	Fingerprint  string              `json:"fingerprint"`
+	Contents     []CacheContentModel `json:"cache_contents"`
+	IsCompressed bool
 }
 
 func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
@@ -71,17 +73,25 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 		}
 	}()
 
+	var reader io.Reader
+	isCompressed := true
 	gzf, err := gzip.NewReader(f)
 	if err != nil {
-		return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
-	}
-	defer func() {
-		if err := gzf.Close(); err != nil {
-			log.Printf(" [!] Failed to close Archive gzip reader(%s): %s", archiveFilePth, err)
+		if err.Error() != "gzip: invalid header" {
+			return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
 		}
-	}()
+		isCompressed = false
+		reader = bufio.NewReader(f)
+	} else {
+		reader = gzf
+		defer func() {
+			if err := gzf.Close(); err != nil {
+				log.Printf(" [!] Failed to close Archive gzip reader(%s): %s", archiveFilePth, err)
+			}
+		}()
+	}
 
-	tarReader := tar.NewReader(gzf)
+	tarReader := tar.NewReader(reader)
 	for {
 		header, err := tarReader.Next()
 		if err != nil {
@@ -96,6 +106,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
 				return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
 			}
+			cacheInfos.IsCompressed = isCompressed
 			return cacheInfos, nil
 		}
 	}
@@ -124,7 +135,10 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 
 	// uncompress the archive
 	{
-		tarCmdParams := []string{"-xvzf", cacheFilePath}
+		tarCmdParams := []string{"-xvf", cacheFilePath}
+		if cacheInfo.IsCompressed {
+			tarCmdParams = []string{"-xvzf", cacheFilePath}
+		}
 		if gIsDebugMode {
 			log.Printf(" $ tar %s", tarCmdParams)
 		}
