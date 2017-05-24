@@ -97,7 +97,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 				if err == io.EOF {
 					break
 				}
-				return CacheInfosModel{}, fmt.Errorf("Failed to read Archive, Tar error: %s", err)
+				return CacheInfosModel{}, fmt.Errorf("Failed to read Archive, uncompressed error: %s", err)
 			}
 			filePth := header.Name
 			if filePth == "./cache-info.json" {
