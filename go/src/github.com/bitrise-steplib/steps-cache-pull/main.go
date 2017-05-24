@@ -2,7 +2,6 @@ package main
 
 import (
 	"archive/tar"
-	"bufio"
 	"compress/gzip"
 	"encoding/json"
 	"errors"
@@ -81,7 +80,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
 		}
 		isCompressed = false
-		reader = bufio.NewReader(f)
+		reader = f
 	} else {
 		reader = gzf
 		defer func() {
