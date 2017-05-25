@@ -109,6 +109,8 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 		tarReader = tar.NewReader(file)
 	}
 
+	log.Printf(" [i] Tar compressed: %t", isCompressed)
+
 	for {
 		header, err := tarReader.Next()
 		if err != nil {
@@ -118,7 +120,6 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			return CacheInfosModel{}, fmt.Errorf("Failed to read Archive, Tar error: %s", err)
 		}
 		filePth := header.Name
-		log.Printf(" [:] %s", filePth)
 		if filePth == "./cache-info.json" {
 			var cacheInfos CacheInfosModel
 			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
