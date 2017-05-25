@@ -72,8 +72,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 		}
 	}()
 
-	var cacheInfos CacheInfosModel
-	cacheInfos.IsCompressed = true
+	isCompressed := true
 	var reader io.Reader
 
 	gzr, err := gzip.NewReader(file)
@@ -81,7 +80,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 		if err.Error() != "gzip: invalid header" {
 			return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
 		}
-		cacheInfos.IsCompressed = false
+		isCompressed = false
 	} else {
 		defer func() {
 			if err := gzr.Close(); err != nil {
@@ -90,7 +89,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 		}()
 	}
 
-	if !cacheInfos.IsCompressed {
+	if !isCompressed {
 		reader = file
 		log.Printf(" [i] Tar is uncompressed")
 	} else {
@@ -111,6 +110,8 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 		filePth := header.Name
 		log.Printf(" [:] %s", filePth)
 		if filePth == "./cache-info.json" {
+			var cacheInfos CacheInfosModel
+			cacheInfos.IsCompressed = isCompressed
 			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
 				return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
 			}
