@@ -109,7 +109,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 		tarReader = tar.NewReader(file)
 	}
 
-	log.Printf(" [i] Tar compressed: %t", isCompressed)
+	log.Printf(" [i] gzip compression: %t", isCompressed)
 
 	for {
 		header, err := tarReader.Next()
