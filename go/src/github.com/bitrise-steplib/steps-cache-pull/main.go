@@ -2,7 +2,6 @@ package main
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -71,33 +70,33 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
 		}
 	}()
+	/*
+		isCompressed := true
+		var reader io.Reader
 
-	isCompressed := true
-	var reader io.Reader
-
-	gzr, err := gzip.NewReader(file)
-	if err != nil {
-		if err.Error() != "gzip: invalid header" {
-			return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
-		}
-		isCompressed = false
-	} else {
-		defer func() {
-			if err := gzr.Close(); err != nil {
-				log.Printf(" [!] Failed to close Archive gzip reader(%s): %s", archiveFilePth, err)
+		gzr, err := gzip.NewReader(file)
+		if err != nil {
+			if err.Error() != "gzip: invalid header" {
+				return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
 			}
-		}()
-	}
+			isCompressed = false
+		} else {
+			defer func() {
+				if err := gzr.Close(); err != nil {
+					log.Printf(" [!] Failed to close Archive gzip reader(%s): %s", archiveFilePth, err)
+				}
+			}()
+		}
 
-	if !isCompressed {
-		reader = file
-		log.Printf(" [i] Tar is uncompressed")
-	} else {
-		reader = gzr
-		log.Printf(" [i] Tar is compressed")
-	}
+		if !isCompressed {
+			reader = file
+			log.Printf(" [i] Tar is uncompressed")
+		} else {
+			reader = gzr
+			log.Printf(" [i] Tar is compressed")
+		}*/
 
-	tarReader := tar.NewReader(reader)
+	tarReader := tar.NewReader(file)
 
 	for {
 		header, err := tarReader.Next()
@@ -114,7 +113,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
 				return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
 			}
-			cacheInfos.IsCompressed = isCompressed
+			cacheInfos.IsCompressed = false //isCompressed
 			return cacheInfos, nil
 		}
 	}
