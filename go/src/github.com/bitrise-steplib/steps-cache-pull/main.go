@@ -48,8 +48,9 @@ type CacheContentModel struct {
 
 // CacheInfosModel ...
 type CacheInfosModel struct {
-	Fingerprint string              `json:"fingerprint"`
-	Contents    []CacheContentModel `json:"cache_contents"`
+	Fingerprint  string              `json:"fingerprint"`
+	Contents     []CacheContentModel `json:"cache_contents"`
+	IsCompressed bool
 }
 
 func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
@@ -61,27 +62,55 @@ func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
 }
 
 func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
-	f, err := os.Open(archiveFilePth)
-	if err != nil {
-		return CacheInfosModel{}, fmt.Errorf("Failed to open Archive file (%s): %s", archiveFilePth, err)
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
-		}
-	}()
 
-	gzf, err := gzip.NewReader(f)
-	if err != nil {
-		return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
-	}
-	defer func() {
-		if err := gzf.Close(); err != nil {
-			log.Printf(" [!] Failed to close Archive gzip reader(%s): %s", archiveFilePth, err)
-		}
-	}()
+	isCompressed := true
+	var tarReader *tar.Reader
 
-	tarReader := tar.NewReader(gzf)
+	{
+		file, err := os.Open(archiveFilePth)
+		if err != nil {
+			return CacheInfosModel{}, fmt.Errorf("Failed to open Archive file (%s): %s", archiveFilePth, err)
+		}
+
+		gzr, err := gzip.NewReader(file)
+		if err != nil {
+			if err.Error() != "gzip: invalid header" {
+				return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
+			}
+			if err := file.Close(); err != nil {
+				log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
+			}
+			isCompressed = false
+		} else {
+			tarReader = tar.NewReader(gzr)
+			defer func() {
+				if err := file.Close(); err != nil {
+					log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
+				}
+			}()
+			defer func() {
+				if err := gzr.Close(); err != nil {
+					log.Printf(" [!] Failed to close Archive gzip reader(%s): %s", archiveFilePth, err)
+				}
+			}()
+		}
+	}
+
+	if !isCompressed {
+		file, err := os.Open(archiveFilePth)
+		if err != nil {
+			return CacheInfosModel{}, fmt.Errorf("Failed to open Archive file (%s): %s", archiveFilePth, err)
+		}
+		defer func() {
+			if err := file.Close(); err != nil {
+				log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
+			}
+		}()
+		tarReader = tar.NewReader(file)
+	}
+
+	log.Printf(" [i] gzip compression: %t", isCompressed)
+
 	for {
 		header, err := tarReader.Next()
 		if err != nil {
@@ -96,6 +125,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
 				return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
 			}
+			cacheInfos.IsCompressed = isCompressed
 			return cacheInfos, nil
 		}
 	}
@@ -124,7 +154,10 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 
 	// uncompress the archive
 	{
-		tarCmdParams := []string{"-xvzf", cacheFilePath}
+		tarCmdParams := []string{"-xvf", cacheFilePath}
+		if cacheInfo.IsCompressed {
+			tarCmdParams = []string{"-xvzf", cacheFilePath}
+		}
 		if gIsDebugMode {
 			log.Printf(" $ tar %s", tarCmdParams)
 		}
