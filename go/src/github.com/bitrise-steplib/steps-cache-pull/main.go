@@ -111,10 +111,10 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 		log.Printf(" [:] %s", filePth)
 		if filePth == "./cache-info.json" {
 			var cacheInfos CacheInfosModel
-			cacheInfos.IsCompressed = isCompressed
 			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
 				return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
 			}
+			cacheInfos.IsCompressed = isCompressed
 			return cacheInfos, nil
 		}
 	}
