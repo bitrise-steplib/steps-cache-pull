@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -61,18 +62,20 @@ func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
 }
 
 func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
-	file, err := os.Open(archiveFilePth)
-	if err != nil {
-		return CacheInfosModel{}, fmt.Errorf("Failed to open Archive file (%s): %s", archiveFilePth, err)
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
+
+	isCompressed := true
+	var reader io.Reader
+
+	{
+		file, err := os.Open(archiveFilePth)
+		if err != nil {
+			return CacheInfosModel{}, fmt.Errorf("Failed to open Archive file (%s): %s", archiveFilePth, err)
 		}
-	}()
-	/*
-		isCompressed := true
-		var reader io.Reader
+		defer func() {
+			if err := file.Close(); err != nil {
+				log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
+			}
+		}()
 
 		gzr, err := gzip.NewReader(file)
 		if err != nil {
@@ -81,22 +84,29 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			}
 			isCompressed = false
 		} else {
+			reader = gzr
 			defer func() {
 				if err := gzr.Close(); err != nil {
 					log.Printf(" [!] Failed to close Archive gzip reader(%s): %s", archiveFilePth, err)
 				}
 			}()
 		}
+	}
 
-		if !isCompressed {
-			reader = file
-			log.Printf(" [i] Tar is uncompressed")
-		} else {
-			reader = gzr
-			log.Printf(" [i] Tar is compressed")
-		}*/
+	if !isCompressed {
+		file, err := os.Open(archiveFilePth)
+		if err != nil {
+			return CacheInfosModel{}, fmt.Errorf("Failed to open Archive file (%s): %s", archiveFilePth, err)
+		}
+		defer func() {
+			if err := file.Close(); err != nil {
+				log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
+			}
+		}()
+		reader = file
+	}
 
-	tarReader := tar.NewReader(file)
+	tarReader := tar.NewReader(reader)
 
 	for {
 		header, err := tarReader.Next()
@@ -113,7 +123,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
 				return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
 			}
-			cacheInfos.IsCompressed = false //isCompressed
+			cacheInfos.IsCompressed = isCompressed
 			return cacheInfos, nil
 		}
 	}
