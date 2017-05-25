@@ -74,58 +74,45 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 
 	var cacheInfos CacheInfosModel
 	cacheInfos.IsCompressed = true
+	var reader io.Reader
 
-	gzf, err := gzip.NewReader(file)
+	gzr, err := gzip.NewReader(file)
 	if err != nil {
 		if err.Error() != "gzip: invalid header" {
 			return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
 		}
+		log.Printf(" [i] Tar is uncompressed")
 		cacheInfos.IsCompressed = false
 	} else {
 		defer func() {
-			if err := gzf.Close(); err != nil {
+			if err := gzr.Close(); err != nil {
 				log.Printf(" [!] Failed to close Archive gzip reader(%s): %s", archiveFilePth, err)
 			}
 		}()
 	}
 
 	if !cacheInfos.IsCompressed {
-		tarReader := tar.NewReader(file)
-
-		for {
-			header, err := tarReader.Next()
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				return CacheInfosModel{}, fmt.Errorf("Failed to read Archive, uncompressed error: %s", err)
-			}
-			filePth := header.Name
-			if filePth == "./cache-info.json" {
-				if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
-					return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
-				}
-				return cacheInfos, nil
-			}
-		}
+		reader = file
 	} else {
-		tarReader := tar.NewReader(gzf)
+		reader = gzr
+	}
 
-		for {
-			header, err := tarReader.Next()
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				return CacheInfosModel{}, fmt.Errorf("Failed to read Archive, Tar error: %s", err)
+	tarReader := tar.NewReader(reader)
+
+	for {
+		header, err := tarReader.Next()
+		if err != nil {
+			if err == io.EOF {
+				break
 			}
-			filePth := header.Name
-			if filePth == "./cache-info.json" {
-				if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
-					return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
-				}
-				return cacheInfos, nil
+			return CacheInfosModel{}, fmt.Errorf("Failed to read Archive, Tar error: %s", err)
+		}
+		filePth := header.Name
+		if filePth == "./cache-info.json" {
+			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
+				return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
 			}
+			return cacheInfos, nil
 		}
 	}
 
