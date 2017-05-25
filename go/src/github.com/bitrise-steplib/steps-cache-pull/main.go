@@ -62,24 +62,25 @@ func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
 }
 
 func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
-	f, err := os.Open(archiveFilePth)
+	file, err := os.Open(archiveFilePth)
 	if err != nil {
 		return CacheInfosModel{}, fmt.Errorf("Failed to open Archive file (%s): %s", archiveFilePth, err)
 	}
 	defer func() {
-		if err := f.Close(); err != nil {
+		if err := file.Close(); err != nil {
 			log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
 		}
 	}()
 
-	isCompressed := true
+	var cacheInfos CacheInfosModel
+	cacheInfos.IsCompressed = true
 
-	gzf, err := gzip.NewReader(f)
+	gzf, err := gzip.NewReader(file)
 	if err != nil {
 		if err.Error() != "gzip: invalid header" {
 			return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
 		}
-		isCompressed = false
+		cacheInfos.IsCompressed = false
 	} else {
 		defer func() {
 			if err := gzf.Close(); err != nil {
@@ -88,8 +89,8 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 		}()
 	}
 
-	if !isCompressed {
-		tarReader := tar.NewReader(f)
+	if !cacheInfos.IsCompressed {
+		tarReader := tar.NewReader(file)
 
 		for {
 			header, err := tarReader.Next()
@@ -101,11 +102,9 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			}
 			filePth := header.Name
 			if filePth == "./cache-info.json" {
-				var cacheInfos CacheInfosModel
 				if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
 					return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
 				}
-				cacheInfos.IsCompressed = isCompressed
 				return cacheInfos, nil
 			}
 		}
@@ -122,11 +121,9 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 			}
 			filePth := header.Name
 			if filePth == "./cache-info.json" {
-				var cacheInfos CacheInfosModel
 				if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
 					return CacheInfosModel{}, fmt.Errorf("Failed to read Cache Info JSON from Archive: %s", err)
 				}
-				cacheInfos.IsCompressed = isCompressed
 				return cacheInfos, nil
 			}
 		}
