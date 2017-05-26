@@ -51,6 +51,7 @@ type CacheInfosModel struct {
 	Fingerprint  string              `json:"fingerprint"`
 	Contents     []CacheContentModel `json:"cache_contents"`
 	IsCompressed bool
+	reader       io.Reader
 }
 
 func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
@@ -61,33 +62,20 @@ func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
 	return envman.Run()
 }
 
-func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
+func readCacheInfoFromArchive(archiveFilePth io.Reader) (CacheInfosModel, error) {
 
 	isCompressed := true
 	var tarReader *tar.Reader
 
 	{
-		file, err := os.Open(archiveFilePth)
-		if err != nil {
-			return CacheInfosModel{}, fmt.Errorf("Failed to open Archive file (%s): %s", archiveFilePth, err)
-		}
-
-		gzr, err := gzip.NewReader(file)
+		gzr, err := gzip.NewReader(archiveFilePth)
 		if err != nil {
 			if err.Error() != "gzip: invalid header" {
 				return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
 			}
-			if err := file.Close(); err != nil {
-				log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
-			}
 			isCompressed = false
 		} else {
 			tarReader = tar.NewReader(gzr)
-			defer func() {
-				if err := file.Close(); err != nil {
-					log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
-				}
-			}()
 			defer func() {
 				if err := gzr.Close(); err != nil {
 					log.Printf(" [!] Failed to close Archive gzip reader(%s): %s", archiveFilePth, err)
@@ -97,16 +85,7 @@ func readCacheInfoFromArchive(archiveFilePth string) (CacheInfosModel, error) {
 	}
 
 	if !isCompressed {
-		file, err := os.Open(archiveFilePth)
-		if err != nil {
-			return CacheInfosModel{}, fmt.Errorf("Failed to open Archive file (%s): %s", archiveFilePth, err)
-		}
-		defer func() {
-			if err := file.Close(); err != nil {
-				log.Printf(" [!] Failed to close Archive file (%s): %s", archiveFilePth, err)
-			}
-		}()
-		tarReader = tar.NewReader(file)
+		tarReader = tar.NewReader(archiveFilePth)
 	}
 
 	log.Printf(" [i] gzip compression: %t", isCompressed)
@@ -245,10 +224,10 @@ func uncompressCaches(cacheFilePath string, cacheInfo CacheInfosModel) (string, 
 	return tmpCacheInfosDirPath, nil
 }
 
-func downloadFile(url string, localPath string) error {
+func downloadFile(url string, localPath string) (io.Reader, error) {
 	out, err := os.Create(localPath)
 	if err != nil {
-		return fmt.Errorf("Failed to open the local cache file for write: %s", err)
+		return nil, fmt.Errorf("Failed to open the local cache file for write: %s", err)
 	}
 	defer func() {
 		if err := out.Close(); err != nil {
@@ -259,7 +238,7 @@ func downloadFile(url string, localPath string) error {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
-		return fmt.Errorf("Failed to create cache download request: %s", err)
+		return nil, fmt.Errorf("Failed to create cache download request: %s", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -273,16 +252,17 @@ func downloadFile(url string, localPath string) error {
 			log.Printf(" (!) Failed to read response body: %s", err)
 		}
 		log.Printf(" ==> (!) Response content: %s", responseBytes)
-		return fmt.Errorf("Failed to download archive - non success response code: %d", resp.StatusCode)
+		return nil, fmt.Errorf("Failed to download archive - non success response code: %d", resp.StatusCode)
 	}
 
 	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
+	//cacheInfos.reader =
+	/*_, err = io.Copy(out, resp.Body)
 	if err != nil {
 		return fmt.Errorf("Failed to save cache content into file: %s", err)
-	}
+	}*/
 
-	return nil
+	return resp.Body, nil
 }
 
 // GenerateDownloadURLRespModel ...
@@ -333,23 +313,24 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	return respModel.DownloadURL, nil
 }
 
-func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
+func downloadFileWithRetry(cacheAPIURL string, localPath string) (io.Reader, error) {
 	downloadURL, err := getCacheDownloadURL(cacheAPIURL)
 	if err != nil {
-		return fmt.Errorf("Failed to generate Download URL: %s", err)
+		return nil, fmt.Errorf("Failed to generate Download URL: %s", err)
 	}
 	if gIsDebugMode {
 		log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
 	}
 
-	if err := downloadFile(downloadURL, localPath); err != nil {
+	reader, err := downloadFile(downloadURL, localPath)
+	if err != nil {
 		fmt.Println()
 		log.Printf(" ===> (!) First download attempt failed, retrying...")
 		fmt.Println()
 		time.Sleep(3000 * time.Millisecond)
 		return downloadFile(downloadURL, localPath)
 	}
-	return nil
+	return reader, nil
 }
 
 func main() {
@@ -381,7 +362,8 @@ func main() {
 		log.Printf("=> cacheTempDir: %s", cacheTempDir)
 	}
 	cacheArchiveFilePath := filepath.Join(cacheTempDir, "cache.tar.gz")
-	if err := downloadFileWithRetry(stepParams.CacheAPIURL, cacheArchiveFilePath); err != nil {
+	reader, err := downloadFileWithRetry(stepParams.CacheAPIURL, cacheArchiveFilePath)
+	if err != nil {
 		log.Fatalf(" [!] Failed to download cache archive: %s", err)
 	}
 
@@ -393,7 +375,7 @@ func main() {
 	//
 	// Read Cache Info from archive
 	//
-	cacheInfoFromArchive, err := readCacheInfoFromArchive(cacheArchiveFilePath)
+	cacheInfoFromArchive, err := readCacheInfoFromArchive(reader)
 	if err != nil {
 		log.Fatalf(" [!] Failed to read from Archive file: %s", err)
 	}
