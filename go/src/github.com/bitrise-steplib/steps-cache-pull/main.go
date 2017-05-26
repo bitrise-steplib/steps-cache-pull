@@ -401,7 +401,7 @@ func main() {
 	//
 	// Read Cache Info from archive
 	//
-	cacheInfoFromArchive, err := readCacheInfoFromArchive(reader)
+	cacheInfoFromArchive, err := readCacheInfoFromArchive(reader, cacheArchiveFilePath)
 	if err != nil {
 		log.Fatalf(" [!] Failed to read from Archive file: %s", err)
 	}
@@ -413,11 +413,11 @@ func main() {
 	// Uncompress cache
 	//
 	log.Println("=> Uncompressing Cache ...")
-	cacheDirPth, err := uncompressCaches(cacheArchiveFilePath, cacheInfoFromArchive)
+	/*cacheDirPth, err := uncompressCaches(cacheArchiveFilePath, cacheInfoFromArchive)
 	if err != nil {
 		log.Fatalf(" [!] Failed to uncompress caches: %s", err)
-	}
-	cacheInfoJSONFilePath := filepath.Join(cacheDirPth, "cache-info.json")
+	}*/
+	cacheInfoJSONFilePath := filepath.Join(cacheArchiveFilePath, "cache-info.json")
 	if isExist, err := pathutil.IsPathExists(cacheInfoJSONFilePath); err != nil {
 		log.Fatalf(" [!] Failed to check Cache Info JSON in uncompressed cache data: %s", err)
 	} else if !isExist {
