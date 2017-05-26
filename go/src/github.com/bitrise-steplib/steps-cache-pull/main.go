@@ -100,7 +100,7 @@ func readCacheInfoFromArchive(reader io.Reader, archiveFilePth string) (CacheInf
 			return CacheInfosModel{}, fmt.Errorf("Failed to read Archive, Tar error: %s", err)
 		}
 		filePth := header.Name
-		log.Printf(" [i] : %s", filePth)
+		//log.Printf(" [i] : %s", filePth)
 		if filePth == "./cache-info.json" {
 			var cacheInfos CacheInfosModel
 			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
