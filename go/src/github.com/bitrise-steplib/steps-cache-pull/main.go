@@ -318,7 +318,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 202 {
-		return "", fmt.Errorf("Download URL was rejected (http-code:%d): %s", resp.StatusCode, body)
+		return "", fmt.Errorf("Build cache not found. Maybe no any uploaded yet, nothing to worry about")
 	}
 
 	var respModel GenerateDownloadURLRespModel
@@ -336,7 +336,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
 	downloadURL, err := getCacheDownloadURL(cacheAPIURL)
 	if err != nil {
-		return fmt.Errorf("Failed to generate Download URL: %s", err)
+		return fmt.Errorf("Unable to download cache: %s", err)
 	}
 	if gIsDebugMode {
 		log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
