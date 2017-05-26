@@ -63,13 +63,13 @@ func exportEnvironmentWithEnvman(keyStr, valueStr string) error {
 	return envman.Run()
 }
 
-func readCacheInfoFromArchive(archiveFilePth io.Reader) (CacheInfosModel, error) {
+func readCacheInfoFromArchive(reader io.Reader, archiveFilePth string) (CacheInfosModel, error) {
 
 	isCompressed := true
 	var tarReader *tar.Reader
 
 	{
-		gzr, err := gzip.NewReader(archiveFilePth)
+		gzr, err := gzip.NewReader(reader)
 		if err != nil {
 			if err.Error() != "gzip: invalid header" {
 				return CacheInfosModel{}, fmt.Errorf("Failed to initialize Archive gzip reader: %s", err)
@@ -86,7 +86,7 @@ func readCacheInfoFromArchive(archiveFilePth io.Reader) (CacheInfosModel, error)
 	}
 
 	if !isCompressed {
-		tarReader = tar.NewReader(archiveFilePth)
+		tarReader = tar.NewReader(reader)
 	}
 
 	log.Printf(" [i] gzip compression: %t", isCompressed)
@@ -108,6 +108,25 @@ func readCacheInfoFromArchive(archiveFilePth io.Reader) (CacheInfosModel, error)
 			}
 			cacheInfos.IsCompressed = isCompressed
 			return cacheInfos, nil
+		}
+
+		path := filepath.Join(archiveFilePth, filePth)
+		info := header.FileInfo()
+		if info.IsDir() {
+			if err = os.MkdirAll(path, info.Mode()); err != nil {
+				return CacheInfosModel{}, err
+			}
+			continue
+		}
+
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
+		if err != nil {
+			return CacheInfosModel{}, err
+		}
+		defer file.Close()
+		_, err = io.Copy(file, tarReader)
+		if err != nil {
+			return CacheInfosModel{}, err
 		}
 	}
 
