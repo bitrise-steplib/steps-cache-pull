@@ -417,7 +417,7 @@ func main() {
 	if err != nil {
 		log.Fatalf(" [!] Failed to uncompress caches: %s", err)
 	}*/
-	cacheInfoJSONFilePath := filepath.Join(cacheArchiveFilePath, "cache-info.json")
+	cacheInfoJSONFilePath := filepath.Join(filepath.Dir(cacheArchiveFilePath), "cache-info.json")
 	if isExist, err := pathutil.IsPathExists(cacheInfoJSONFilePath); err != nil {
 		log.Fatalf(" [!] Failed to check Cache Info JSON in uncompressed cache data: %s", err)
 	} else if !isExist {
