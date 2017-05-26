@@ -382,7 +382,7 @@ func main() {
 	}
 	cacheArchiveFilePath := filepath.Join(cacheTempDir, "cache.tar.gz")
 	if err := downloadFileWithRetry(stepParams.CacheAPIURL, cacheArchiveFilePath); err != nil {
-		log.Fatalf(" [!] Unable to download cache: : %s", err)
+		log.Fatalf(" [!] Unable to download cache: %s", err)
 	}
 
 	if gIsDebugMode {
