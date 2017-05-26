@@ -336,7 +336,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
 	downloadURL, err := getCacheDownloadURL(cacheAPIURL)
 	if err != nil {
-		return fmt.Errorf("Unable to download cache: %s", err)
+		return err
 	}
 	if gIsDebugMode {
 		log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
@@ -382,7 +382,7 @@ func main() {
 	}
 	cacheArchiveFilePath := filepath.Join(cacheTempDir, "cache.tar.gz")
 	if err := downloadFileWithRetry(stepParams.CacheAPIURL, cacheArchiveFilePath); err != nil {
-		log.Fatalf(" [!] Failed to download cache archive: %s", err)
+		log.Fatalf(" [!] Unable to download cache: : %s", err)
 	}
 
 	if gIsDebugMode {
