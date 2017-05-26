@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"errors"
@@ -99,6 +100,7 @@ func readCacheInfoFromArchive(archiveFilePth io.Reader) (CacheInfosModel, error)
 			return CacheInfosModel{}, fmt.Errorf("Failed to read Archive, Tar error: %s", err)
 		}
 		filePth := header.Name
+		log.Printf(" [i] : %s", filePth)
 		if filePth == "./cache-info.json" {
 			var cacheInfos CacheInfosModel
 			if err := json.NewDecoder(tarReader).Decode(&cacheInfos); err != nil {
@@ -262,7 +264,12 @@ func downloadFile(url string, localPath string) (io.Reader, error) {
 		return fmt.Errorf("Failed to save cache content into file: %s", err)
 	}*/
 
-	return resp.Body, nil
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf(" (!) ReadlAll err: %s", err)
+	}
+
+	return bytes.NewReader(content), nil
 }
 
 // GenerateDownloadURLRespModel ...
