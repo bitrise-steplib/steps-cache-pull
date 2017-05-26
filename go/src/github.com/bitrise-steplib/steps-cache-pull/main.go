@@ -110,7 +110,7 @@ func readCacheInfoFromArchive(reader io.Reader, archiveFilePth string) (CacheInf
 			return cacheInfos, nil
 		}
 
-		path := filepath.Join(archiveFilePth, filePth)
+		path := filepath.Join(filepath.Dir(archiveFilePth), filePth)
 		info := header.FileInfo()
 		if info.IsDir() {
 			if err = os.MkdirAll(path, info.Mode()); err != nil {
