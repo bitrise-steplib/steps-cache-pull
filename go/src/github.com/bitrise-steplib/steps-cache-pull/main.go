@@ -318,7 +318,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 202 {
-		return "", fmt.Errorf("Build cache not found. Maybe no any uploaded yet, nothing to worry about")
+		return "", fmt.Errorf("Build cache not found. Probably cache not initialised yet (first cache push initialises the cache), nothing to worry about ;)")
 	}
 
 	var respModel GenerateDownloadURLRespModel
