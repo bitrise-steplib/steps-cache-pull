@@ -67,7 +67,7 @@ func untarFilesFromHTTPReader(url string, compressed bool) error {
 
 		tarReader = tar.NewReader(gzr)
 	} else {
-		tarReader := tar.NewReader(resp.Body)
+		tarReader = tar.NewReader(resp.Body)
 	}
 
 	for {
@@ -89,75 +89,75 @@ func untarFilesFromHTTPReader(url string, compressed bool) error {
 func untarFile(tr *tar.Reader, header *tar.Header) error {
 	switch header.Typeflag {
 	case tar.TypeDir:
-		return mkdir(header.Name)
+		return os.MkdirAll(header.Name, 0755)
 	case tar.TypeReg, tar.TypeRegA, tar.TypeChar, tar.TypeBlock, tar.TypeFifo:
-		return writeNewFile(header.Name, tr, header.FileInfo().Mode())
+		return writeNewFile(header, tr)
 	case tar.TypeSymlink:
-		return writeNewSymbolicLink(header.Name, header.Linkname)
+		return writeNewSymbolicLink(header)
 	case tar.TypeLink:
-		return writeNewHardLink(header.Name, filepath.Join(header.Name, header.Linkname))
+		return writeNewHardLink(header)
 	default:
 		return fmt.Errorf("%s: unknown type flag: %c", header.Name, header.Typeflag)
 	}
 }
 
-func writeNewFile(fpath string, in io.Reader, fm os.FileMode) error {
+func writeNewFile(header *tar.Header, in io.Reader) error {
+	fpath := header.Name
+	fm := header.FileInfo().Mode()
+
 	err := os.MkdirAll(filepath.Dir(fpath), 0755)
 	if err != nil {
-		return fmt.Errorf("%s: making directory for file: %v", fpath, err)
+		return err
 	}
 
 	out, err := os.Create(fpath)
 	if err != nil {
-		return fmt.Errorf("%s: creating new file: %v", fpath, err)
+		return err
 	}
 	defer out.Close()
 
 	err = out.Chmod(fm)
 	if err != nil && runtime.GOOS != "windows" {
-		return fmt.Errorf("%s: changing file mode: %v", fpath, err)
+		return err
 	}
 
 	_, err = io.Copy(out, in)
 	if err != nil {
-		return fmt.Errorf("%s: writing file: %v", fpath, err)
+		return err
+	}
+
+	err = os.Chtimes(fpath, header.ModTime, header.ModTime)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func writeNewSymbolicLink(fpath string, target string) error {
-	err := os.MkdirAll(filepath.Dir(fpath), 0755)
+func writeNewSymbolicLink(header *tar.Header) error {
+	err := os.MkdirAll(filepath.Dir(header.Name), 0755)
 	if err != nil {
-		return fmt.Errorf("%s: making directory for file: %v", fpath, err)
+		return err
 	}
 
-	err = os.Symlink(target, fpath)
+	err = os.Symlink(header.Linkname, header.Name)
 	if err != nil {
-		return fmt.Errorf("%s: making symbolic link for: %v", fpath, err)
-	}
-
-	return nil
-}
-
-func writeNewHardLink(fpath string, target string) error {
-	err := os.MkdirAll(filepath.Dir(fpath), 0755)
-	if err != nil {
-		return fmt.Errorf("%s: making directory for file: %v", fpath, err)
-	}
-
-	err = os.Link(target, fpath)
-	if err != nil {
-		return fmt.Errorf("%s: making hard link for: %v", fpath, err)
+		return err
 	}
 
 	return nil
 }
 
-func mkdir(dirPath string) error {
-	err := os.MkdirAll(dirPath, 0755)
+func writeNewHardLink(header *tar.Header) error {
+	err := os.MkdirAll(filepath.Dir(header.Name), 0755)
 	if err != nil {
-		return fmt.Errorf("%s: making directory: %v", dirPath, err)
+		return err
 	}
+
+	err = os.Link(filepath.Join(header.Name, header.Linkname), header.Name)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -219,7 +219,6 @@ func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
 		fmt.Println()
 		log.Printf(" ===> (!) First download attempt failed, retrying...")
 		fmt.Println()
-		time.Sleep(3000 * time.Millisecond)
 		return untarFilesFromHTTPReader(downloadURL, true)
 	}
 	return nil
@@ -246,15 +245,15 @@ func main() {
 	//
 
 	log.Println("=> Downloading Cache ...")
+	startTime := time.Now()
+
 	cacheArchiveFilePath := "/tmp/cache-archive.tar"
 	if err := downloadFileWithRetry(stepParams.CacheAPIURL, cacheArchiveFilePath); err != nil {
 		log.Fatalf(" [!] Unable to download cache: %s", err)
 	}
 
-	if gIsDebugMode {
-		log.Printf("=> cacheArchiveFilePath: %s", cacheArchiveFilePath)
-	}
 	log.Println("=> Downloading Cache [DONE]")
+	log.Println("=> Took: " + time.Now().Sub(startTime).String())
 
 	log.Println("=> Finished")
 }
