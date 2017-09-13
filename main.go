@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -53,16 +54,7 @@ func uncompressCaches(cacheFilePath string) error {
 	return nil
 }
 
-func downloadFile(url string, localPath string) error {
-	out, err := os.Create(localPath)
-	if err != nil {
-		return fmt.Errorf("Failed to open the local cache file for write: %s", err)
-	}
-	defer func() {
-		if err := out.Close(); err != nil {
-			log.Printf(" [!] Failed to close Archive download file (%s): %s", localPath, err)
-		}
-	}()
+func downloadFile(url string, compressed bool) error {
 
 	// Get the data
 	resp, err := http.Get(url)
@@ -85,25 +77,50 @@ func downloadFile(url string, localPath string) error {
 	}
 
 	//Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return fmt.Errorf("Failed to save cache content into file: %s", err)
+	// _, err = io.Copy(out, resp.Body)
+	// if err != nil {
+	// 	return fmt.Errorf("Failed to save cache content into file: %s", err)
+	// }
+
+	if compressed {
+		gzr, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return err
+		}
+		defer gzr.Close()
+
+		tr := tar.NewReader(gzr)
+
+		for {
+			header, err := tr.Next()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return err
+			}
+
+			if err := untarFile(tr, header); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 
-	// tr := tar.NewReader(resp.Body)
+	tr := tar.NewReader(resp.Body)
 
-	// for {
-	// 	header, err := tr.Next()
-	// 	if err == io.EOF {
-	// 		break
-	// 	} else if err != nil {
-	// 		return err
-	// 	}
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
 
-	// 	if err := untarFile(tr, header); err != nil {
-	// 		return err
-	// 	}
-	// }
+		if err := untarFile(tr, header); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -241,12 +258,12 @@ func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
 		log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
 	}
 
-	if err := downloadFile(downloadURL, localPath); err != nil {
+	if err := downloadFile(downloadURL, false); err != nil {
 		fmt.Println()
 		log.Printf(" ===> (!) First download attempt failed, retrying...")
 		fmt.Println()
 		time.Sleep(3000 * time.Millisecond)
-		return downloadFile(downloadURL, localPath)
+		return downloadFile(downloadURL, true)
 	}
 	return nil
 }
