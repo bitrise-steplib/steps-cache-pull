@@ -13,8 +13,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
-
-	"github.com/bitrise-io/go-utils/command"
 )
 
 var (
@@ -37,29 +35,11 @@ func CreateStepParamsFromEnvs() (StepParamsModel, error) {
 	return stepParams, nil
 }
 
-func uncompressCaches(cacheFilePath string) error {
-	tarCmdParams := []string{"-xPf", cacheFilePath}
-
-	if gIsDebugMode {
-		log.Printf(" $ tar %s", tarCmdParams)
-	}
-
-	cmd := command.New("tar", tarCmdParams...)
-	fullOut, err := cmd.RunAndReturnTrimmedCombinedOutput()
-	if err != nil {
-		log.Printf(" [!] Failed to uncompress cache archive, full output (stdout & stderr) was: %s", fullOut)
-		return fmt.Errorf("Failed to uncompress cache archive, error was: %s", err)
-	}
-
-	return nil
-}
-
-func downloadFile(url string, compressed bool) error {
-
+func untarFilesFromHTTPReader(url string, compressed bool) error {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
-		return fmt.Errorf("Failed to create cache download request: %s", err)
+		return err
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -70,17 +50,13 @@ func downloadFile(url string, compressed bool) error {
 	if resp.StatusCode != 200 {
 		responseBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Printf(" (!) Failed to read response body: %s", err)
+			return err
 		}
-		log.Printf(" ==> (!) Response content: %s", responseBytes)
-		return fmt.Errorf("Failed to download archive - non success response code: %d", resp.StatusCode)
+
+		return fmt.Errorf("Failed to download archive - non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
 	}
 
-	//Writer the body to file
-	// _, err = io.Copy(out, resp.Body)
-	// if err != nil {
-	// 	return fmt.Errorf("Failed to save cache content into file: %s", err)
-	// }
+	var tarReader *tar.Reader
 
 	if compressed {
 		gzr, err := gzip.NewReader(resp.Body)
@@ -89,39 +65,23 @@ func downloadFile(url string, compressed bool) error {
 		}
 		defer gzr.Close()
 
-		tr := tar.NewReader(gzr)
-
-		for {
-			header, err := tr.Next()
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return err
-			}
-
-			if err := untarFile(tr, header); err != nil {
-				return err
-			}
-		}
-
-		return nil
+		tarReader = tar.NewReader(gzr)
+	} else {
+		tarReader := tar.NewReader(resp.Body)
 	}
 
-	tr := tar.NewReader(resp.Body)
-
 	for {
-		header, err := tr.Next()
+		header, err := tarReader.Next()
 		if err == io.EOF {
 			break
 		} else if err != nil {
 			return err
 		}
 
-		if err := untarFile(tr, header); err != nil {
+		if err := untarFile(tarReader, header); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -211,9 +171,6 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Failed to create request: %s", err)
 	}
-	// req.Header.Set("Content-Type", "application/json")
-	// req.Header.Set("Api-Token", apiToken)
-	// req.Header.Set("X-Bitrise-Event", "hook")
 
 	client := &http.Client{
 		Timeout: 20 * time.Second,
@@ -258,12 +215,12 @@ func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
 		log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
 	}
 
-	if err := downloadFile(downloadURL, false); err != nil {
+	if err := untarFilesFromHTTPReader(downloadURL, false); err != nil {
 		fmt.Println()
 		log.Printf(" ===> (!) First download attempt failed, retrying...")
 		fmt.Println()
 		time.Sleep(3000 * time.Millisecond)
-		return downloadFile(downloadURL, true)
+		return untarFilesFromHTTPReader(downloadURL, true)
 	}
 	return nil
 }
@@ -298,18 +255,6 @@ func main() {
 		log.Printf("=> cacheArchiveFilePath: %s", cacheArchiveFilePath)
 	}
 	log.Println("=> Downloading Cache [DONE]")
-
-	//
-	// Uncompress cache
-	//
-	log.Println("=> Uncompressing Cache ...")
-
-	err = uncompressCaches(cacheArchiveFilePath)
-	if err != nil {
-		log.Fatalf("Failed to uncompress tar, error: %+v", err)
-	}
-
-	log.Println("=> Uncompressing Cache [DONE]")
 
 	log.Println("=> Finished")
 }
