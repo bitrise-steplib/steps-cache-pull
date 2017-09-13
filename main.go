@@ -35,7 +35,7 @@ func CreateStepParamsFromEnvs() (StepParamsModel, error) {
 	return stepParams, nil
 }
 
-func untarFilesFromHTTPReader(url string, compressed bool) error {
+func downloadCacheArchive(url string) error {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
@@ -56,10 +56,41 @@ func untarFilesFromHTTPReader(url string, compressed bool) error {
 		return fmt.Errorf("Failed to download archive - non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
 	}
 
+	out, err := os.Create("/tmp/cache-archive.tar")
+	if err != nil {
+		return fmt.Errorf("Failed to open the local cache file for write: %s", err)
+	}
+
+	defer func() {
+		if err := out.Close(); err != nil {
+			log.Printf(" [!] Failed to close Archive download file: %+v", err)
+		}
+	}()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func untarFiles(compressed bool) error {
+	archiveFile, err := os.Open("/tmp/cache-archive.tar")
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err := archiveFile.Close(); err != nil {
+			log.Printf(" [!] Failed to close archive file: %+v", err)
+		}
+	}()
+
 	var tarReader *tar.Reader
 
 	if compressed {
-		gzr, err := gzip.NewReader(resp.Body)
+		gzr, err := gzip.NewReader(archiveFile)
 		if err != nil {
 			return err
 		}
@@ -67,7 +98,7 @@ func untarFilesFromHTTPReader(url string, compressed bool) error {
 
 		tarReader = tar.NewReader(gzr)
 	} else {
-		tarReader = tar.NewReader(resp.Body)
+		tarReader = tar.NewReader(archiveFile)
 	}
 
 	for {
@@ -82,6 +113,7 @@ func untarFilesFromHTTPReader(url string, compressed bool) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -215,11 +247,11 @@ func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
 		log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
 	}
 
-	if err := untarFilesFromHTTPReader(downloadURL, false); err != nil {
+	if err := downloadCacheArchive(downloadURL); err != nil {
 		fmt.Println()
 		log.Printf(" ===> (!) First download attempt failed, retrying...")
 		fmt.Println()
-		return untarFilesFromHTTPReader(downloadURL, true)
+		return downloadCacheArchive(downloadURL)
 	}
 	return nil
 }
@@ -253,6 +285,20 @@ func main() {
 	}
 
 	log.Println("=> Downloading Cache [DONE]")
+	log.Println("=> Took: " + time.Now().Sub(startTime).String())
+
+	log.Println("=> Uncompressing archive ...")
+	startTime = time.Now()
+	if err := untarFiles(false); err != nil {
+		fmt.Println()
+		log.Printf(" ===> (!) Uncompressing failed, retrying...")
+		fmt.Println()
+		err := untarFiles(true)
+		if err != nil {
+			log.Fatalf("Failed to uncompress archive, error: %+v", err)
+		}
+	}
+	log.Println("=> Uncompressing archive [DONE]")
 	log.Println("=> Took: " + time.Now().Sub(startTime).String())
 
 	log.Println("=> Finished")
