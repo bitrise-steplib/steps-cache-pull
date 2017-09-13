@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/tar"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/bitrise-io/go-utils/command"
@@ -82,11 +85,102 @@ func downloadFile(url string, localPath string) error {
 	}
 
 	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return fmt.Errorf("Failed to save cache content into file: %s", err)
+	// _, err = io.Copy(out, resp.Body)
+	// if err != nil {
+	// 	return fmt.Errorf("Failed to save cache content into file: %s", err)
+	// }
+
+	tr := tar.NewReader(resp.Body)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		if err := untarFile(tr, header); err != nil {
+			return err
+		}
 	}
 
+	return nil
+}
+
+// untarFile untars a single file from tr with header header into destination.
+func untarFile(tr *tar.Reader, header *tar.Header) error {
+	switch header.Typeflag {
+	case tar.TypeDir:
+		return mkdir(header.Name)
+	case tar.TypeReg, tar.TypeRegA, tar.TypeChar, tar.TypeBlock, tar.TypeFifo:
+		return writeNewFile(header.Name, tr, header.FileInfo().Mode())
+	case tar.TypeSymlink:
+		return writeNewSymbolicLink(header.Name, header.Linkname)
+	case tar.TypeLink:
+		return writeNewHardLink(header.Name, filepath.Join(header.Name, header.Linkname))
+	default:
+		return fmt.Errorf("%s: unknown type flag: %c", header.Name, header.Typeflag)
+	}
+}
+
+func writeNewFile(fpath string, in io.Reader, fm os.FileMode) error {
+	err := os.MkdirAll(filepath.Dir(fpath), 0755)
+	if err != nil {
+		return fmt.Errorf("%s: making directory for file: %v", fpath, err)
+	}
+
+	out, err := os.Create(fpath)
+	if err != nil {
+		return fmt.Errorf("%s: creating new file: %v", fpath, err)
+	}
+	defer out.Close()
+
+	err = out.Chmod(fm)
+	if err != nil && runtime.GOOS != "windows" {
+		return fmt.Errorf("%s: changing file mode: %v", fpath, err)
+	}
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return fmt.Errorf("%s: writing file: %v", fpath, err)
+	}
+	return nil
+}
+
+func writeNewSymbolicLink(fpath string, target string) error {
+	err := os.MkdirAll(filepath.Dir(fpath), 0755)
+	if err != nil {
+		return fmt.Errorf("%s: making directory for file: %v", fpath, err)
+	}
+
+	err = os.Symlink(target, fpath)
+	if err != nil {
+		return fmt.Errorf("%s: making symbolic link for: %v", fpath, err)
+	}
+
+	return nil
+}
+
+func writeNewHardLink(fpath string, target string) error {
+	err := os.MkdirAll(filepath.Dir(fpath), 0755)
+	if err != nil {
+		return fmt.Errorf("%s: making directory for file: %v", fpath, err)
+	}
+
+	err = os.Link(target, fpath)
+	if err != nil {
+		return fmt.Errorf("%s: making hard link for: %v", fpath, err)
+	}
+
+	return nil
+}
+
+func mkdir(dirPath string) error {
+	err := os.MkdirAll(dirPath, 0755)
+	if err != nil {
+		return fmt.Errorf("%s: making directory: %v", dirPath, err)
+	}
 	return nil
 }
 
@@ -191,14 +285,14 @@ func main() {
 	//
 	// Uncompress cache
 	//
-	log.Println("=> Uncompressing Cache ...")
+	// log.Println("=> Uncompressing Cache ...")
 
-	err = uncompressCaches(cacheArchiveFilePath)
-	if err != nil {
-		log.Fatalf("Failed to uncompress tar, error: %+v", err)
-	}
+	// err = uncompressCaches(cacheArchiveFilePath)
+	// if err != nil {
+	// 	log.Fatalf("Failed to uncompress tar, error: %+v", err)
+	// }
 
-	log.Println("=> Uncompressing Cache [DONE]")
+	// log.Println("=> Uncompressing Cache [DONE]")
 
 	log.Println("=> Finished")
 }
