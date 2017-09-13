@@ -195,6 +195,11 @@ func main() {
 	//
 	log.Println("=> Uncompressing Cache ...")
 
+	err = uncompressCaches(cacheArchiveFilePath)
+	if err != nil {
+		log.Fatalf("Failed to uncompress tar, error: %+v", err)
+	}
+
 	log.Println("=> Uncompressing Cache [DONE]")
 
 	log.Println("=> Finished")
