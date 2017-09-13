@@ -84,26 +84,26 @@ func downloadFile(url string, localPath string) error {
 		return fmt.Errorf("Failed to download archive - non success response code: %d", resp.StatusCode)
 	}
 
-	// Writer the body to file
-	// _, err = io.Copy(out, resp.Body)
-	// if err != nil {
-	// 	return fmt.Errorf("Failed to save cache content into file: %s", err)
-	// }
-
-	tr := tar.NewReader(resp.Body)
-
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		if err := untarFile(tr, header); err != nil {
-			return err
-		}
+	//Writer the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return fmt.Errorf("Failed to save cache content into file: %s", err)
 	}
+
+	// tr := tar.NewReader(resp.Body)
+
+	// for {
+	// 	header, err := tr.Next()
+	// 	if err == io.EOF {
+	// 		break
+	// 	} else if err != nil {
+	// 		return err
+	// 	}
+
+	// 	if err := untarFile(tr, header); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	return nil
 }
@@ -285,14 +285,14 @@ func main() {
 	//
 	// Uncompress cache
 	//
-	// log.Println("=> Uncompressing Cache ...")
+	log.Println("=> Uncompressing Cache ...")
 
-	// err = uncompressCaches(cacheArchiveFilePath)
-	// if err != nil {
-	// 	log.Fatalf("Failed to uncompress tar, error: %+v", err)
-	// }
+	err = uncompressCaches(cacheArchiveFilePath)
+	if err != nil {
+		log.Fatalf("Failed to uncompress tar, error: %+v", err)
+	}
 
-	// log.Println("=> Uncompressing Cache [DONE]")
+	log.Println("=> Uncompressing Cache [DONE]")
 
 	log.Println("=> Finished")
 }
