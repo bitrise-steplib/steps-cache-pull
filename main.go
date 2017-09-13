@@ -41,10 +41,14 @@ func uncompressCaches(cacheFilePath string) error {
 	}
 
 	cmd := command.New("tar", tarCmdParams...)
-	if fullOut, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+	fullOut, err := cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
 		log.Printf(" [!] Failed to uncompress cache archive, full output (stdout & stderr) was: %s", fullOut)
 		return fmt.Errorf("Failed to uncompress cache archive, error was: %s", err)
 	}
+
+	log.Printf(fullOut)
+
 	return nil
 }
 
