@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/bitrise-io/go-utils/command"
 )
 
 var (
@@ -289,15 +291,21 @@ func main() {
 
 	log.Println("=> Uncompressing archive ...")
 	startTime = time.Now()
-	if err := untarFiles(false); err != nil {
-		fmt.Println()
-		log.Printf(" ===> (!) Uncompressing failed, retrying...")
-		fmt.Println()
-		err := untarFiles(true)
-		if err != nil {
-			log.Fatalf("Failed to uncompress archive, error: %+v", err)
-		}
+	// if err := untarFiles(false); err != nil {
+	// 	fmt.Println()
+	// 	log.Printf(" ===> (!) Uncompressing failed, retrying...")
+	// 	fmt.Println()
+	// 	err := untarFiles(true)
+	// 	if err != nil {
+	// 		log.Fatalf("Failed to uncompress archive, error: %+v", err)
+	// 	}
+	// }
+
+	cmd := command.New("tar", "-xPf", "/tmp/cache-archive.tar")
+	if err := cmd.Run(); err != nil {
+		log.Fatalf(" [!] Unable to uncompress cache: %s", err)
 	}
+
 	log.Println("=> Uncompressing archive [DONE]")
 	log.Println("=> Took: " + time.Now().Sub(startTime).String())
 
