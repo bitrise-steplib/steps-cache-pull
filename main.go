@@ -34,7 +34,7 @@ func CreateStepParamsFromEnvs() (StepParamsModel, error) {
 }
 
 func uncompressCaches(cacheFilePath string) error {
-	tarCmdParams := []string{"-xPvf", cacheFilePath}
+	tarCmdParams := []string{"-xPf", cacheFilePath}
 
 	if gIsDebugMode {
 		log.Printf(" $ tar %s", tarCmdParams)
@@ -46,8 +46,6 @@ func uncompressCaches(cacheFilePath string) error {
 		log.Printf(" [!] Failed to uncompress cache archive, full output (stdout & stderr) was: %s", fullOut)
 		return fmt.Errorf("Failed to uncompress cache archive, error was: %s", err)
 	}
-
-	log.Printf(fullOut)
 
 	return nil
 }
