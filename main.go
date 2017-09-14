@@ -334,6 +334,11 @@ func writeNewSymbolicLink(header *tar.Header) error {
 		return fmt.Errorf("%s: making symbolic link for: %v", fpath, err)
 	}
 
+	err = os.Chtimes(fpath, header.ModTime, header.ModTime)
+	if err != nil {
+		return fmt.Errorf("%s: setting mtimes: %v", fpath, err)
+	}
+
 	return nil
 }
 
@@ -350,6 +355,11 @@ func writeNewHardLink(header *tar.Header) error {
 		return fmt.Errorf("%s: making hard link for: %v", fpath, err)
 	}
 
+	err = os.Chtimes(fpath, header.ModTime, header.ModTime)
+	if err != nil {
+		return fmt.Errorf("%s: setting mtimes: %v", fpath, err)
+	}
+
 	return nil
 }
 
@@ -359,5 +369,11 @@ func mkdir(header *tar.Header) error {
 	if err != nil {
 		return fmt.Errorf("%s: making directory: %v", dirPath, err)
 	}
+
+	err = os.Chtimes(dirPath, header.ModTime, header.ModTime)
+	if err != nil {
+		return fmt.Errorf("%s: setting mtimes: %v", dirPath, err)
+	}
+
 	return nil
 }
