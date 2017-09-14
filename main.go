@@ -277,20 +277,22 @@ func untar(tr *tar.Reader) error {
 func untarFile(tr *tar.Reader, header *tar.Header) error {
 	switch header.Typeflag {
 	case tar.TypeDir:
-		return mkdir(header.Name)
+		return mkdir(header)
 	case tar.TypeReg:
-		return writeNewFile(header.Name, tr, header.FileInfo().Mode())
+		return writeNewFile(header, tr)
 	case tar.TypeSymlink:
-		return writeNewSymbolicLink(header.Name, header.Linkname)
+		return writeNewSymbolicLink(header)
 	case tar.TypeLink:
-		return writeNewHardLink(header.Name, header.Linkname)
+		return writeNewHardLink(header)
 	default:
 		log.Printf("%s: unknown type flag: %c", header.Name, header.Typeflag)
 		return nil
 	}
 }
 
-func writeNewFile(fpath string, in io.Reader, fm os.FileMode) error {
+func writeNewFile(header *tar.Header, in io.Reader) error {
+	fpath := header.Name
+	fm := header.FileInfo().Mode()
 	err := os.MkdirAll(filepath.Dir(fpath), 0755)
 	if err != nil {
 		return fmt.Errorf("%s: making directory for file: %v", fpath, err)
@@ -307,6 +309,11 @@ func writeNewFile(fpath string, in io.Reader, fm os.FileMode) error {
 		return fmt.Errorf("%s: changing file mode: %v", fpath, err)
 	}
 
+	err = os.Chtimes(fpath, header.ModTime, header.ModTime)
+	if err != nil {
+		return fmt.Errorf("%s: setting mtimes: %v", fpath, err)
+	}
+
 	_, err = io.Copy(out, in)
 	if err != nil {
 		return fmt.Errorf("%s: writing file: %v", fpath, err)
@@ -314,7 +321,9 @@ func writeNewFile(fpath string, in io.Reader, fm os.FileMode) error {
 	return nil
 }
 
-func writeNewSymbolicLink(fpath string, target string) error {
+func writeNewSymbolicLink(header *tar.Header) error {
+	fpath := header.Name
+	target := header.Linkname
 	err := os.MkdirAll(filepath.Dir(fpath), 0755)
 	if err != nil {
 		return fmt.Errorf("%s: making directory for file: %v", fpath, err)
@@ -328,7 +337,9 @@ func writeNewSymbolicLink(fpath string, target string) error {
 	return nil
 }
 
-func writeNewHardLink(fpath string, target string) error {
+func writeNewHardLink(header *tar.Header) error {
+	fpath := header.Name
+	target := header.Linkname
 	err := os.MkdirAll(filepath.Dir(fpath), 0755)
 	if err != nil {
 		return fmt.Errorf("%s: making directory for file: %v", fpath, err)
@@ -342,7 +353,8 @@ func writeNewHardLink(fpath string, target string) error {
 	return nil
 }
 
-func mkdir(dirPath string) error {
+func mkdir(header *tar.Header) error {
+	dirPath := header.Name
 	err := os.MkdirAll(dirPath, 0755)
 	if err != nil {
 		return fmt.Errorf("%s: making directory: %v", dirPath, err)
