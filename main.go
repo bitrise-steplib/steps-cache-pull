@@ -214,7 +214,7 @@ func main() {
 	}
 
 	if err := downloadAndExtractCacheArchive(downloadURL); err != nil {
-		log.Fatalf("failed to download file")
+		log.Fatalf("failed to download file, error: %+v", err)
 	}
 
 	log.Println("=> Downloading Cache [DONE]")
