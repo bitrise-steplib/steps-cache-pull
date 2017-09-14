@@ -42,11 +42,11 @@ func downloadCacheArchive(url string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Printf(" [!] Failed to close Archive download response body: %s", err)
-		}
-	}()
+	// defer func() {
+	// 	if err := resp.Body.Close(); err != nil {
+	// 		log.Printf(" [!] Failed to close Archive download response body: %s", err)
+	// 	}
+	// }()
 
 	if resp.StatusCode != 200 {
 		responseBytes, err := ioutil.ReadAll(resp.Body)
