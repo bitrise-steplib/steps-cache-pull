@@ -205,25 +205,25 @@ func main() {
 	// Download Cache Archive
 	//
 
+	// log.Println("=> Downloading Cache ...")
+	// startTime := time.Now()
+
+	// downloadURL, err := getCacheDownloadURL(stepParams.CacheAPIURL)
+	// if err != nil {
+	// 	log.Fatalf("failed to get download url")
+	// }
+
+	// if err := downloadAndExtractCacheArchive(downloadURL); err != nil {
+	// 	log.Fatalf("failed to download file, error: %+v", err)
+	// }
+
+	// log.Println("=> Downloading Cache [DONE]")
+	// log.Println("=> Took: " + time.Now().Sub(startTime).String())
+
+	// return
+
 	log.Println("=> Downloading Cache ...")
 	startTime := time.Now()
-
-	downloadURL, err := getCacheDownloadURL(stepParams.CacheAPIURL)
-	if err != nil {
-		log.Fatalf("failed to get download url")
-	}
-
-	if err := downloadAndExtractCacheArchive(downloadURL); err != nil {
-		log.Fatalf("failed to download file, error: %+v", err)
-	}
-
-	log.Println("=> Downloading Cache [DONE]")
-	log.Println("=> Took: " + time.Now().Sub(startTime).String())
-
-	return
-
-	log.Println("=> Downloading Cache ...")
-	startTime = time.Now()
 
 	cacheArchiveFilePath := "/tmp/cache-archive.tar"
 	if err := downloadFileWithRetry(stepParams.CacheAPIURL, cacheArchiveFilePath); err != nil {
