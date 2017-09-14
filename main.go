@@ -36,11 +36,11 @@ func CreateStepParamsFromEnvs() (StepParamsModel, error) {
 	return stepParams, nil
 }
 
-func downloadCacheArchive(url string) error {
+func downloadCacheArchive(url string) ([]byte, error) {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -51,29 +51,30 @@ func downloadCacheArchive(url string) error {
 	if resp.StatusCode != 200 {
 		responseBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		return fmt.Errorf("Failed to download archive - non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
+		return nil, fmt.Errorf("Failed to download archive - non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
 	}
 
-	out, err := os.Create("/tmp/cache-archive.tar")
+	// out, err := os.Create("/tmp/cache-archive.tar")
+	// if err != nil {
+	// 	return nil, fmt.Errorf("Failed to open the local cache file for write: %s", err)
+	// }
+
+	// defer func() {
+	// 	if err := out.Close(); err != nil {
+	// 		log.Printf(" [!] Failed to close Archive download file: %+v", err)
+	// 	}
+	// }()
+
+	cont, err := ioutil.ReadAll(resp.Body)
+	//_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return fmt.Errorf("Failed to open the local cache file for write: %s", err)
+		return nil, err
 	}
 
-	defer func() {
-		if err := out.Close(); err != nil {
-			log.Printf(" [!] Failed to close Archive download file: %+v", err)
-		}
-	}()
-
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return cont, nil
 }
 
 func downloadAndExtractCacheArchive(url string) error {
@@ -167,22 +168,23 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	return respModel.DownloadURL, nil
 }
 
-func downloadFileWithRetry(cacheAPIURL string, localPath string) error {
+func downloadFileWithRetry(cacheAPIURL string, localPath string) ([]byte, error) {
 	downloadURL, err := getCacheDownloadURL(cacheAPIURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if gIsDebugMode {
 		log.Printf("   [DEBUG] downloadURL: %s", downloadURL)
 	}
 
-	if err := downloadCacheArchive(downloadURL); err != nil {
+	cont, err := downloadCacheArchive(downloadURL)
+	if err != nil {
 		fmt.Println()
 		log.Printf(" ===> (!) First download attempt failed, retrying...")
 		fmt.Println()
 		return downloadCacheArchive(downloadURL)
 	}
-	return nil
+	return cont, nil
 }
 
 func main() {
@@ -226,7 +228,8 @@ func main() {
 	startTime := time.Now()
 
 	cacheArchiveFilePath := "/tmp/cache-archive.tar"
-	if err := downloadFileWithRetry(stepParams.CacheAPIURL, cacheArchiveFilePath); err != nil {
+	cont, err := downloadFileWithRetry(stepParams.CacheAPIURL, cacheArchiveFilePath)
+	if err != nil {
 		log.Fatalf(" [!] Unable to download cache: %s", err)
 	}
 
@@ -245,7 +248,7 @@ func main() {
 	// 	}
 	// }
 
-	cmd := command.New("tar", "-xPf", "/tmp/cache-archive.tar")
+	cmd := command.New("tar", "-xPf", fmt.Sprintf("<%s", cont))
 	if err := cmd.Run(); err != nil {
 		log.Fatalf(" [!] Unable to uncompress cache: %s", err)
 	}
