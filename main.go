@@ -36,7 +36,7 @@ func CreateStepParamsFromEnvs() (StepParamsModel, error) {
 	return stepParams, nil
 }
 
-func downloadCacheArchive(url string) ([]byte, error) {
+func downloadCacheArchive(url string) (io.ReadCloser, error) {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
@@ -68,13 +68,13 @@ func downloadCacheArchive(url string) ([]byte, error) {
 	// 	}
 	// }()
 
-	cont, err := ioutil.ReadAll(resp.Body)
-	//_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return nil, err
-	}
+	// cont, err := ioutil.ReadAll(resp.Body)
+	// //_, err = io.Copy(out, resp.Body)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	return cont, nil
+	return resp.Body, nil
 }
 
 func downloadAndExtractCacheArchive(url string) error {
@@ -168,7 +168,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	return respModel.DownloadURL, nil
 }
 
-func downloadFileWithRetry(cacheAPIURL string, localPath string) ([]byte, error) {
+func downloadFileWithRetry(cacheAPIURL string, localPath string) (io.ReadCloser, error) {
 	downloadURL, err := getCacheDownloadURL(cacheAPIURL)
 	if err != nil {
 		return nil, err
@@ -248,7 +248,8 @@ func main() {
 	// 	}
 	// }
 
-	cmd := command.New("tar", "-xPf", fmt.Sprintf("<%s", cont))
+	cmd := command.New("tar", "-xPf", "/dev/stdin")
+	cmd.SetStdin(cont)
 	if err := cmd.Run(); err != nil {
 		log.Fatalf(" [!] Unable to uncompress cache: %s", err)
 	}
