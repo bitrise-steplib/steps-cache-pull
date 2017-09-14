@@ -334,9 +334,11 @@ func writeNewSymbolicLink(header *tar.Header) error {
 		return fmt.Errorf("%s: making symbolic link for: %v", fpath, err)
 	}
 
-	err = os.Chtimes(fpath, header.ModTime, header.ModTime)
+	time := header.ModTime.Format("0601021504.05")
+	cmd := command.New("touch", "-ht", time, fpath)
+	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("%s: setting mtimes: %v", fpath, err)
+		return err
 	}
 
 	return nil
@@ -355,9 +357,11 @@ func writeNewHardLink(header *tar.Header) error {
 		return fmt.Errorf("%s: making hard link for: %v", fpath, err)
 	}
 
-	err = os.Chtimes(fpath, header.ModTime, header.ModTime)
+	time := header.ModTime.Format("0601021504.05")
+	cmd := command.New("touch", "-ht", time, fpath)
+	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("%s: setting mtimes: %v", fpath, err)
+		return err
 	}
 
 	return nil
