@@ -278,7 +278,7 @@ func untarFile(tr *tar.Reader, header *tar.Header) error {
 	switch header.Typeflag {
 	case tar.TypeDir:
 		return mkdir(header)
-	case tar.TypeReg:
+	case tar.TypeReg, tar.TypeRegA:
 		return writeNewFile(header, tr)
 	case tar.TypeSymlink:
 		return writeNewSymbolicLink(header)
