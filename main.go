@@ -59,12 +59,12 @@ func downloadCacheArchive(url string) error {
 			return err
 		}
 
-		return fmt.Errorf("Failed to download archive - non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
+		return fmt.Errorf("non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
 	}
 
 	out, err := os.Create(cacheArchivePath)
 	if err != nil {
-		return fmt.Errorf("Failed to open the local cache file for write: %s", err)
+		return fmt.Errorf("failed to open the local cache file for write: %s", err)
 	}
 
 	defer func() {
@@ -98,13 +98,13 @@ func downloadAndExtractCacheArchive(url string) error {
 			return err
 		}
 
-		return fmt.Errorf("Failed to download archive - non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
+		return fmt.Errorf("non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
 	}
 
 	cmd := command.New("tar", "-xPf", "/dev/stdin")
 	cmd.SetStdin(resp.Body)
 	if output, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
-		return fmt.Errorf("Failed to extract tar archive, output: %s, error: %s", output, err)
+		return fmt.Errorf("failed to extract tar archive, output: %s, error: %s", output, err)
 	}
 
 	return resp.Body.Close()
@@ -113,7 +113,7 @@ func downloadAndExtractCacheArchive(url string) error {
 func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	req, err := http.NewRequest("GET", cacheAPIURL, nil)
 	if err != nil {
-		return "", fmt.Errorf("Failed to create request: %s", err)
+		return "", fmt.Errorf("failed to create request: %s", err)
 	}
 
 	client := &http.Client{
@@ -121,7 +121,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("Failed to send request: %s", err)
+		return "", fmt.Errorf("failed to send request: %s", err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -131,7 +131,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("Request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
+		return "", fmt.Errorf("request sent, but failed to read response body (http-code:%d): %s", resp.StatusCode, body)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 202 {
@@ -171,7 +171,7 @@ func main() {
 		log.Fatalf("Failed to get download url, error: %+v", err)
 	}
 
-	log.Println("=> Downloading and Uncompress cache archive ...")
+	log.Println("=> Downloading and extracting cache archive ...")
 	startTime := time.Now()
 
 	if err := downloadAndExtractCacheArchive(downloadURL); err != nil {
