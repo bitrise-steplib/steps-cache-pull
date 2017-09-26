@@ -83,11 +83,7 @@ func downloadCacheArchive(url string) error {
 
 func uncompressArchive() error {
 	cmd := command.New("tar", "-xPf", cacheArchivePath)
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-
-	return nil
+	return cmd.Run()
 }
 
 func downloadAndExtractCacheArchive(url string) error {
@@ -111,11 +107,7 @@ func downloadAndExtractCacheArchive(url string) error {
 		return fmt.Errorf("Failed to extract tar archive, output: %s, error: %s", output, err)
 	}
 
-	if err := resp.Body.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return resp.Body.Close()
 }
 
 func getCacheDownloadURL(cacheAPIURL string) (string, error) {
@@ -187,7 +179,6 @@ func main() {
 
 		if err := downloadCacheArchive(downloadURL); err != nil {
 			log.Printf("Retry failed, unable to download cache archive, error: %s", err)
-			log.Printf("Usually nothing to worry about, this is a common error message when no cache archive uploaded yet.")
 			return
 		}
 
