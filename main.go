@@ -175,8 +175,6 @@ func main() {
 	startTime := time.Now()
 
 	if err := downloadAndExtractCacheArchive(downloadURL); err != nil {
-		log.Printf(" [!] Unable to download or uncompress cache: %s, retrying...", err)
-
 		if err := downloadCacheArchive(downloadURL); err != nil {
 			log.Printf("Retry failed, unable to download cache archive, error: %s", err)
 			return
