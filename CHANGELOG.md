@@ -1,6 +1,11 @@
-## Changelog (Current version: 2.0.0)
+## Changelog (Current version: 2.0.1)
 
 -----------------
+
+### 2.0.1 (2017 Dec 04)
+* [dba30cb] Prepare for 2.0.1
+* [c19903a] Merge pull request #6 from bitrise-steplib/update
+* [9c2bd54] removed unused log
 
 ### 2.0.0 (2017 Sep 26)
 * [11a16a3] Prepare for 2.0.0
@@ -31,4 +36,4 @@
 
 -----------------
 
-Updated: 2017 Sep 26
+Updated: 2017 Dec 04
