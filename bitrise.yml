@@ -6,7 +6,7 @@ app:
   # define these in your .bitrise.secrets.yml
   - BITRISE_CACHE_API_URL: $BITRISE_CACHE_API_URL
   - MY_STEPLIB_REPO_FORK_GIT_URL: $MY_STEPLIB_REPO_FORK_GIT_URL
-  - STEP_VERSION: "2.0.0"
+  - STEP_VERSION: "2.0.1"
 
 workflows:
   test:
