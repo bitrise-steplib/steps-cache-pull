@@ -1,43 +1,34 @@
 package main
 
 import (
+	"archive/tar"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/log"
 )
 
 const cacheArchivePath = "/tmp/cache-archive.tar"
-
-var (
-	gIsDebugMode = false
-)
-
-// StepParamsModel ...
-type StepParamsModel struct {
-	CacheAPIURL string
-	IsDebugMode bool
-}
 
 // GenerateDownloadURLRespModel ...
 type GenerateDownloadURLRespModel struct {
 	DownloadURL string `json:"download_url"`
 }
 
-// CreateStepParamsFromEnvs ...
-func CreateStepParamsFromEnvs() (StepParamsModel, error) {
-	stepParams := StepParamsModel{
-		CacheAPIURL: os.Getenv("cache_api_url"),
-		IsDebugMode: os.Getenv("is_debug_mode") == "true",
-	}
-
-	return stepParams, nil
+// Config stores the step inputs
+type Config struct {
+	CacheAPIURL string `env:"cache_api_url"`
+	DebugMode   bool   `env:"is_debug_mode,opt[true,false]"`
+	StackID     string `env:"BITRISE_STACK_ID"`
 }
 
 func downloadCacheArchive(url string) error {
@@ -86,28 +77,41 @@ func uncompressArchive() error {
 	return cmd.Run()
 }
 
-func downloadAndExtractCacheArchive(url string) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != 200 {
-		responseBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-
-		return fmt.Errorf("non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
-	}
-
+func extractCacheArchive(r io.Reader) error {
 	cmd := command.New("tar", "-xPf", "/dev/stdin")
-	cmd.SetStdin(resp.Body)
+	cmd.SetStdin(r)
 	if output, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		return fmt.Errorf("failed to extract tar archive, output: %s, error: %s", output, err)
 	}
 
-	return resp.Body.Close()
+	if rc, ok := r.(io.ReadCloser); ok {
+		return rc.Close()
+	}
+	return nil
+}
+
+func performRequest(url string) (io.ReadCloser, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				log.Warnf("Failed to close response body, error: %s", err)
+			}
+		}()
+
+		responseBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
+	}
+
+	return resp.Body, nil
 }
 
 func getCacheDownloadURL(cacheAPIURL string) (string, error) {
@@ -150,44 +154,138 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	return respModel.DownloadURL, nil
 }
 
-func main() {
-	log.Println("Cache pull...")
+func readFirstEntry(r io.Reader) (*tar.Reader, *tar.Header, error) {
+	// var archive io.Reader
+	// var err error
+	// archive, err = gzip.NewReader(r)
+	// if err != nil {
+	// 	// might the archive is not compressed
+	// 	log.Debugf("failed to open the archive as a .gzip: %s", err)
+	// 	archive = r
+	// }
 
-	stepParams, err := CreateStepParamsFromEnvs()
+	tr := tar.NewReader(r)
+	hdr, err := tr.Next()
+	if err == io.EOF {
+		// no entries in the archive
+		return nil, nil, nil
+	}
 	if err != nil {
-		log.Fatalf(" [!] Input error : %s", err)
+		return nil, nil, err
 	}
-	gIsDebugMode = stepParams.IsDebugMode
-	if gIsDebugMode {
-		log.Printf("=> stepParams: %#v", stepParams)
+
+	return tr, hdr, nil
+}
+
+func parseStackID(b []byte) (string, error) {
+	type ArchiveInfo struct {
+		StackID string `json:"stack_id,omitempty"`
 	}
-	if stepParams.CacheAPIURL == "" {
-		log.Println(" (i) No Cache API URL specified, there's no cache to use, exiting.")
+	var archiveInfo ArchiveInfo
+	if err := json.Unmarshal(b, &archiveInfo); err != nil {
+		return "", err
+	}
+	return archiveInfo.StackID, nil
+}
+
+func logErrorfAndExit(format string, args ...interface{}) {
+	log.Errorf(format, args...)
+	os.Exit(1)
+}
+
+func main() {
+	var conf Config
+	if err := stepconf.Parse(&conf); err != nil {
+		logErrorfAndExit(err.Error())
+	}
+	stepconf.Print(conf)
+	log.SetEnableDebugLog(conf.DebugMode)
+
+	if conf.CacheAPIURL == "" {
+		log.Warnf("No Cache API URL specified, there's no cache to use, exiting.")
 		return
 	}
 
-	downloadURL, err := getCacheDownloadURL(stepParams.CacheAPIURL)
-	if err != nil {
-		log.Fatalf("Failed to get download url, error: %+v", err)
-	}
-
-	log.Println("=> Downloading and extracting cache archive ...")
 	startTime := time.Now()
 
-	if err := downloadAndExtractCacheArchive(downloadURL); err != nil {
-		if err := downloadCacheArchive(downloadURL); err != nil {
-			log.Printf("Retry failed, unable to download cache archive, error: %s", err)
-			return
+	var cacheReader io.Reader
+	if strings.HasPrefix(conf.CacheAPIURL, "file://") {
+		fmt.Println()
+		log.Infof("Using local cache archive")
+
+		pth := strings.TrimPrefix(conf.CacheAPIURL, "file://")
+
+		var err error
+		cacheReader, err = os.Open(pth)
+		if err != nil {
+			logErrorfAndExit("Failed to open cache archive: %s", err)
+		}
+	} else {
+		fmt.Println()
+		log.Infof("Downloading remote cache archive")
+
+		downloadURL, err := getCacheDownloadURL(conf.CacheAPIURL)
+		if err != nil {
+			logErrorfAndExit("Failed to get download url, error: %s", err)
 		}
 
-		if err := uncompressArchive(); err != nil {
-			log.Printf("Retry failed, unable to uncompress cache archive, error: %s", err)
-			return
+		fmt.Println("=> Downloading and extracting cache archive ...")
+
+		cacheReader, err = performRequest(downloadURL)
+		if err != nil {
+			logErrorfAndExit("Failed to perform cache download request, error: %s", err)
 		}
 	}
 
-	log.Println("=> [DONE]")
-	log.Println("=> Took: " + time.Now().Sub(startTime).String())
+	if currentStackID := os.Getenv("BITRISE_STACK_ID"); len(currentStackID) > 0 {
+		fmt.Println()
+		log.Infof("Checking archive and current stacks")
+		log.Printf("current stack id: %s", currentStackID)
 
-	log.Println("=> Finished")
+		r, hdr, err := readFirstEntry(cacheReader)
+		if err != nil {
+			logErrorfAndExit("Failed to get first archive entry, error: %s", err)
+		}
+
+		if filepath.Base(hdr.Name) == "archive_info.json" {
+			b, err := ioutil.ReadAll(r)
+			if err != nil {
+				logErrorfAndExit("Failed to read first archive entry, error: %s", err)
+			}
+
+			archiveStackID, err := parseStackID(b)
+			if err != nil {
+				logErrorfAndExit("Failed to parse first archive entry, error: %s", err)
+			}
+			log.Printf("archive stack id: %s", archiveStackID)
+
+			if len(archiveStackID) > 0 && archiveStackID != currentStackID {
+				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackID, currentStackID)
+				log.Warnf("Skipping cache pull, because of the stack has changed")
+				os.Exit(0)
+			}
+		} else {
+			log.Warnf("cache archive does not contain stack information, skipping stack check")
+		}
+	}
+
+	fmt.Println()
+	log.Infof("Extracting cache archive")
+
+	if err := extractCacheArchive(cacheReader); err != nil {
+		// if err := downloadCacheArchive(downloadURL); err != nil {
+		// 	log.Printf("Retry failed, unable to download cache archive, error: %s", err)
+		// 	return
+		// }
+
+		// if err := uncompressArchive(); err != nil {
+		// 	log.Printf("Retry failed, unable to uncompress cache archive, error: %s", err)
+		// 	return
+		// }
+		logErrorfAndExit("Failed to uncompress cache archive: %s", err)
+	}
+
+	fmt.Println()
+	log.Donef("Done")
+	log.Printf("Took: " + time.Now().Sub(startTime).String())
 }
