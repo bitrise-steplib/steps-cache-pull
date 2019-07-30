@@ -7,84 +7,72 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 )
 
-// RecorderReader can record once reads and can replay the previous reads.
-type RecorderReader struct {
+// RestoreReader can restore previous read sequence once.
+type RestoreReader struct {
 	buff bytes.Buffer
+	r    io.Reader
+
 	orig io.Reader
 	tee  io.Reader
 
-	record bool
-	replay bool
+	restore bool
 }
 
-// NewRecorderReader creates a new RecorderReader
-func NewRecorderReader(r io.Reader) *RecorderReader {
-	a := RecorderReader{}
+// NewRestoreReader creates a new RestoreReader.
+func NewRestoreReader(r io.Reader) *RestoreReader {
+	a := RestoreReader{}
 	a.orig = r
 	a.tee = io.TeeReader(r, &a.buff)
+	a.r = a.tee
 	return &a
 }
 
-// Record instructs the reader to record upcoming reads.
-func (a *RecorderReader) Record() {
-	a.record = true
-	a.replay = false
-}
-
-// Replay instructs the reader to replay previous reads.
-func (a *RecorderReader) Replay() {
-	log.Debugf("using buffer with %d bytes", a.buff.Len())
-
-	a.replay = true
-	a.record = false
+// Restore instructs the reader to restore previous read sequences.
+func (a *RestoreReader) Restore() {
+	a.restore = true
 }
 
 // Read implements the io.Reader interface.
-func (a *RecorderReader) Read(p []byte) (n int, err error) {
-	log.Debugf("----------")
-	log.Debugf("attempting to read %d bytes", len(p))
+func (a *RestoreReader) Read(p []byte) (int, error) {
+	if a.restore && a.buff.Len() > 0 {
+		return a.restoreRead(p)
+	}
+	return a.r.Read(p)
+}
 
-	if a.record {
-		log.Debugf("reading from the original reader")
+func (a *RestoreReader) restoreRead(p []byte) (int, error) {
+	log.Debugf("reading from buffer with size %d", a.buff.Len())
 
-		return a.tee.Read(p)
+	n, err := a.buff.Read(p)
+	if err != nil {
+		return n, err
+	}
+	log.Debugf("%d bytes read from buffer", n)
+
+	if n >= a.buff.Len() {
+		log.Debugf("buffer drained")
+
+		a.restore = false
+		a.r = a.orig
 	}
 
-	if a.replay && a.buff.Len() > 0 {
-		log.Debugf("reading from buffer with size %d", a.buff.Len())
-
-		n, err := a.buff.Read(p)
-		if err != nil {
-			return n, err
-		}
-		log.Debugf("%d bytes read from buffer", n)
-
-		if len(p) > n {
-			log.Debugf("%d remaining bytes to read", len(p)-n)
-
-			b := make([]byte, len(p)-n)
-
-			m, err := a.tee.Read(b)
-			if err != nil {
-				return n + m, err
-			}
-
-			log.Debugf("%d bytes read from original reader", m)
-			log.Debugf("%d bytes read all together", n+m)
-
-			if n+m >= len(p) {
-				log.Debugf("buffer drained")
-
-				a.replay = false
-			}
-
-			return n + m, nil
-		}
-
+	if len(p) <= n {
 		return n, nil
 	}
 
-	log.Debugf("reading from the original reader")
+	log.Debugf("%d remaining bytes to read", len(p)-n)
 
-	return a.orig.Read(p)
+	b := make([]byte, len(p)-n)
+
+	m, err := a.r.Read(b)
+	if err != nil {
+		return n + m, err
+	}
+
+	log.Debugf("%d bytes read from reader", m)
+	log.Debugf("%d bytes read all together", n+m)
+
+	_ = copy(p[n:], b)
+
+	return n + m, nil
 }

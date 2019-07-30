@@ -32,21 +32,21 @@ func extractCacheArchive(r io.Reader) error {
 
 // readFirstEntry reads the first entry from a given archive.
 func readFirstEntry(r io.Reader) (*tar.Reader, *tar.Header, error) {
-	replayReader := NewRecorderReader(r)
-	replayReader.Record()
+	restoreReader := NewRestoreReader(r)
 
 	var archive io.Reader
 	var err error
 
 	log.Debugf("attempt to read archive as .gzip")
 
-	archive, err = gzip.NewReader(replayReader)
+	archive, err = gzip.NewReader(restoreReader)
 	if err != nil {
 		// might the archive is not compressed
 		log.Debugf("failed to open the archive as .gzip: %s", err)
+		log.Debugf("restoring reader and trying as .tar")
 
-		replayReader.Replay()
-		archive = replayReader
+		restoreReader.Restore()
+		archive = restoreReader
 	}
 
 	tr := tar.NewReader(archive)

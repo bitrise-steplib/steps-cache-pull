@@ -195,27 +195,25 @@ func main() {
 		}
 	}
 
-	cacheRecorderReader := NewRecorderReader(cacheReader)
+	cacheRecorderReader := NewRestoreReader(cacheReader)
 
 	if currentStackID := os.Getenv("BITRISE_STACK_ID"); len(currentStackID) > 0 {
 		fmt.Println()
 		log.Infof("Checking archive and current stacks")
 		log.Printf("current stack id: %s", currentStackID)
 
-		cacheRecorderReader.Record()
-
 		r, hdr, err := readFirstEntry(cacheRecorderReader)
 		if err != nil {
 			logErrorfAndExit("Failed to get first archive entry, error: %s", err)
 		}
+
+		cacheRecorderReader.Restore()
 
 		if filepath.Base(hdr.Name) == "archive_info.json" {
 			b, err := ioutil.ReadAll(r)
 			if err != nil {
 				logErrorfAndExit("Failed to read first archive entry, error: %s", err)
 			}
-
-			cacheRecorderReader.Replay()
 
 			archiveStackID, err := parseStackID(b)
 			if err != nil {
@@ -229,7 +227,6 @@ func main() {
 				os.Exit(0)
 			}
 		} else {
-			cacheRecorderReader.Replay()
 			log.Warnf("cache archive does not contain stack information, skipping stack check")
 		}
 	}
