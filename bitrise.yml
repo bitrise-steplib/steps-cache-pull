@@ -10,8 +10,11 @@ app:
 workflows:
   ci:
     before_run:
+    - go-tests
     - remote_cache_test
-    - test
+    - local_tar_test
+    - local_gzip_test
+    - local_stack_change_test
   
   test:
     before_run:
