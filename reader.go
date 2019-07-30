@@ -7,7 +7,7 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 )
 
-// RecorderReader ...
+// RecorderReader can record once reads and can replay the previous reads.
 type RecorderReader struct {
 	buff bytes.Buffer
 	orig io.Reader
@@ -17,7 +17,7 @@ type RecorderReader struct {
 	replay bool
 }
 
-// NewRecorderReader ...
+// NewRecorderReader creates a new RecorderReader
 func NewRecorderReader(r io.Reader) *RecorderReader {
 	a := RecorderReader{}
 	a.orig = r
@@ -25,13 +25,13 @@ func NewRecorderReader(r io.Reader) *RecorderReader {
 	return &a
 }
 
-// Record ...
+// Record instructs the reader to record upcoming reads.
 func (a *RecorderReader) Record() {
 	a.record = true
 	a.replay = false
 }
 
-// Replay ...
+// Replay instructs the reader to replay previous reads.
 func (a *RecorderReader) Replay() {
 	log.Debugf("using buffer with %d bytes", a.buff.Len())
 
@@ -39,7 +39,7 @@ func (a *RecorderReader) Replay() {
 	a.record = false
 }
 
-// Read ...
+// Read implements the io.Reader interface.
 func (a *RecorderReader) Read(p []byte) (n int, err error) {
 	log.Debugf("----------")
 	log.Debugf("attempting to read %d bytes", len(p))
