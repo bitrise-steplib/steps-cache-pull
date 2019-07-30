@@ -188,15 +188,22 @@ workflows:
         - path: $TMP_DIR
         - is_create_path: true
     - script:
+        title: Create File to cache
         inputs:
-        - content:
+        - content: |
+            # !/bin/env bash
+            set -ex
             echo "test" > $TMP_DIR/File.txt
     - cache-push:
+        run_if: true
         inputs:
         - cache_paths: $TMP_DIR/File.txt
     - script:
+        title: Remove test File
         inputs:
-        - content:
+        - content: |
+            # !/bin/env bash
+            set -ex
             rm -rf $TMP_DIR/File.txt
     - path::./:
         title: Step Test
@@ -206,8 +213,12 @@ workflows:
         - is_debug_mode: true
         - cache_api_url: $BITRISE_CACHE_API_URL
     - script:
+        title: Test if archive uncompressed
         inputs:
-        - content:
+        - content: |
+            # !/bin/env bash
+            set -ex
+
             if [ ! -f $TMP_DIR/File.txt ]; then
               echo "File.txt does not exist"
               exit 1
