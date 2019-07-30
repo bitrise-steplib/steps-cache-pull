@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,11 +32,14 @@ type Config struct {
 	StackID     string `env:"BITRISE_STACK_ID"`
 }
 
-func downloadCacheArchive(url string) error {
-	// Get the data
+func downloadCacheArchive(url string) (string, error) {
+	if strings.HasPrefix(url, "file://") {
+		return strings.TrimPrefix(url, "file://"), nil
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	defer func() {
@@ -47,33 +51,27 @@ func downloadCacheArchive(url string) error {
 	if resp.StatusCode != 200 {
 		responseBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return err
+			return "", err
 		}
 
-		return fmt.Errorf("non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
+		return "", fmt.Errorf("non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
 	}
 
-	out, err := os.Create(cacheArchivePath)
+	f, err := os.Create(cacheArchivePath)
 	if err != nil {
-		return fmt.Errorf("failed to open the local cache file for write: %s", err)
+		return "", fmt.Errorf("failed to open the local cache file for write: %s", err)
 	}
 
-	defer func() {
-		if err := out.Close(); err != nil {
-			log.Printf(" [!] Failed to close Archive download file: %+v", err)
-		}
-	}()
-
-	_, err = io.Copy(out, resp.Body)
+	_, err = io.Copy(f, resp.Body)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return cacheArchivePath, nil
 }
 
-func uncompressArchive() error {
-	cmd := command.New("tar", "-xPf", cacheArchivePath)
+func uncompressArchive(pth string) error {
+	cmd := command.New("tar", "-xPf", pth)
 	return cmd.Run()
 }
 
@@ -155,16 +153,24 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 }
 
 func readFirstEntry(r io.Reader) (*tar.Reader, *tar.Header, error) {
-	// var archive io.Reader
-	// var err error
-	// archive, err = gzip.NewReader(r)
-	// if err != nil {
-	// 	// might the archive is not compressed
-	// 	log.Debugf("failed to open the archive as a .gzip: %s", err)
-	// 	archive = r
-	// }
+	replayReader := NewRecorderReader(r)
+	replayReader.Record()
 
-	tr := tar.NewReader(r)
+	var archive io.Reader
+	var err error
+
+	log.Debugf("attempt to read archive as .gzip")
+
+	archive, err = gzip.NewReader(replayReader)
+	if err != nil {
+		// might the archive is not compressed
+		log.Debugf("failed to open the archive as .gzip: %s", err)
+
+		replayReader.Replay()
+		archive = replayReader
+	}
+
+	tr := tar.NewReader(archive)
 	hdr, err := tr.Next()
 	if err == io.EOF {
 		// no entries in the archive
@@ -208,15 +214,18 @@ func main() {
 
 	startTime := time.Now()
 
-	var cacheReader io.Reader
+	var r io.Reader
+	var cacheURI string
 	if strings.HasPrefix(conf.CacheAPIURL, "file://") {
+		cacheURI = conf.CacheAPIURL
+
 		fmt.Println()
 		log.Infof("Using local cache archive")
 
 		pth := strings.TrimPrefix(conf.CacheAPIURL, "file://")
 
 		var err error
-		cacheReader, err = os.Open(pth)
+		r, err = os.Open(pth)
 		if err != nil {
 			logErrorfAndExit("Failed to open cache archive: %s", err)
 		}
@@ -228,19 +237,24 @@ func main() {
 		if err != nil {
 			logErrorfAndExit("Failed to get download url, error: %s", err)
 		}
+		cacheURI = downloadURL
 
 		fmt.Println("=> Downloading and extracting cache archive ...")
 
-		cacheReader, err = performRequest(downloadURL)
+		r, err = performRequest(downloadURL)
 		if err != nil {
 			logErrorfAndExit("Failed to perform cache download request, error: %s", err)
 		}
 	}
 
+	cacheReader := NewRecorderReader(r)
+
 	if currentStackID := os.Getenv("BITRISE_STACK_ID"); len(currentStackID) > 0 {
 		fmt.Println()
 		log.Infof("Checking archive and current stacks")
 		log.Printf("current stack id: %s", currentStackID)
+
+		cacheReader.Record()
 
 		r, hdr, err := readFirstEntry(cacheReader)
 		if err != nil {
@@ -252,6 +266,8 @@ func main() {
 			if err != nil {
 				logErrorfAndExit("Failed to read first archive entry, error: %s", err)
 			}
+
+			cacheReader.Replay()
 
 			archiveStackID, err := parseStackID(b)
 			if err != nil {
@@ -265,6 +281,7 @@ func main() {
 				os.Exit(0)
 			}
 		} else {
+			cacheReader.Replay()
 			log.Warnf("cache archive does not contain stack information, skipping stack check")
 		}
 	}
@@ -273,15 +290,16 @@ func main() {
 	log.Infof("Extracting cache archive")
 
 	if err := extractCacheArchive(cacheReader); err != nil {
-		// if err := downloadCacheArchive(downloadURL); err != nil {
-		// 	log.Printf("Retry failed, unable to download cache archive, error: %s", err)
-		// 	return
-		// }
+		pth, err := downloadCacheArchive(cacheURI)
+		if err != nil {
+			log.Printf("Retry failed, unable to download cache archive, error: %s", err)
+			return
+		}
 
-		// if err := uncompressArchive(); err != nil {
-		// 	log.Printf("Retry failed, unable to uncompress cache archive, error: %s", err)
-		// 	return
-		// }
+		if err := uncompressArchive(pth); err != nil {
+			log.Printf("Retry failed, unable to uncompress cache archive, error: %s", err)
+			return
+		}
 		logErrorfAndExit("Failed to uncompress cache archive: %s", err)
 	}
 
