@@ -6,26 +6,31 @@ description: |-
 
   For more information on setting it up and for tips & tricks, head over to our Bitrise DevCenter
   at [http://devcenter.bitrise.io/caching/about-caching/](http://devcenter.bitrise.io/caching/about-caching/).
+
 website: https://github.com/bitrise-steplib/steps-cache-pull
 source_code_url: https://github.com/bitrise-steplib/steps-cache-pull.git
 support_url: https://github.com/bitrise-steplib/steps-cache-pull/issues
+
 host_os_tags:
   - osx-10.10
   - ubuntu-14.04
 project_type_tags: []
 type_tags:
   - utility
+
 is_requires_admin_user: false
 is_always_run: false
 is_skippable: true
+
 toolkit:
   go:
     package_name: github.com/bitrise-steplib/steps-cache-pull
 deps:
   apt_get:
-  - name: rsync
   - name: tar
+
 run_if: ".IsCI"
+
 inputs:
   - workdir: $BITRISE_SOURCE_DIR
     opts:
@@ -49,11 +54,4 @@ inputs:
       summary: "Cache API URL"
       description: |-
         Cache API URL
-      is_required: true
       is_dont_change_value: true
-outputs:
-  - BITRISE_CACHE_INFO_PATH:
-    opts:
-      title: Bitrise Cache-Info (JSON) file path
-      description: |-
-        Path to the uncompressed cache-info.json
