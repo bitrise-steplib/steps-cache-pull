@@ -54,5 +54,4 @@ inputs:
       summary: "Cache API URL"
       description: |-
         Cache API URL
-      is_required: true
       is_dont_change_value: true

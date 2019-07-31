@@ -7,21 +7,34 @@ import (
 	"io"
 
 	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/errorutil"
 	"github.com/bitrise-io/go-utils/log"
 )
 
 // uncompressArchive invokes tar tool against a local archive file.
 func uncompressArchive(pth string) error {
 	cmd := command.New("tar", "-xPf", pth)
-	return cmd.Run()
+	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
+	if err != nil {
+		errMsg := err.Error()
+		if errorutil.IsExitStatusError(err) {
+			errMsg = out
+		}
+		return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), errMsg)
+	}
+	return nil
 }
 
 // extractCacheArchive invokes tar tool by piping the archive to the command's input.
 func extractCacheArchive(r io.Reader) error {
 	cmd := command.New("tar", "-xPf", "/dev/stdin")
 	cmd.SetStdin(r)
-	if output, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
-		return fmt.Errorf("failed to extract tar archive, output: %s, error: %s", output, err)
+	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+		errMsg := err.Error()
+		if errorutil.IsExitStatusError(err) {
+			errMsg = out
+		}
+		return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), errMsg)
 	}
 
 	if rc, ok := r.(io.ReadCloser); ok {

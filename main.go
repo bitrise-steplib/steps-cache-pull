@@ -37,7 +37,7 @@ func downloadCacheArchive(url string) (string, error) {
 
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf(" [!] Failed to close Archive download response body: %s", err)
+			log.Warnf("Failed to close response body: %s", err)
 		}
 	}()
 
@@ -74,7 +74,7 @@ func performRequest(url string) (io.ReadCloser, error) {
 	if resp.StatusCode != 200 {
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
-				log.Warnf("Failed to close response body, error: %s", err)
+				log.Warnf("Failed to close response body: %s", err)
 			}
 		}()
 
@@ -142,8 +142,8 @@ func parseStackID(b []byte) (string, error) {
 	return archiveInfo.StackID, nil
 }
 
-// logErrorfAndExit prints an error and terminates the step.
-func logErrorfAndExit(format string, args ...interface{}) {
+// failf prints an error and terminates the step.
+func failf(format string, args ...interface{}) {
 	log.Errorf(format, args...)
 	os.Exit(1)
 }
@@ -151,7 +151,7 @@ func logErrorfAndExit(format string, args ...interface{}) {
 func main() {
 	var conf Config
 	if err := stepconf.Parse(&conf); err != nil {
-		logErrorfAndExit(err.Error())
+		failf(err.Error())
 	}
 	stepconf.Print(conf)
 	log.SetEnableDebugLog(conf.DebugMode)
@@ -177,7 +177,7 @@ func main() {
 		var err error
 		cacheReader, err = os.Open(pth)
 		if err != nil {
-			logErrorfAndExit("Failed to open cache archive file: %s", err)
+			failf("Failed to open cache archive file: %s", err)
 		}
 	} else {
 		fmt.Println()
@@ -185,13 +185,13 @@ func main() {
 
 		downloadURL, err := getCacheDownloadURL(conf.CacheAPIURL)
 		if err != nil {
-			logErrorfAndExit("Failed to get cache download url: %s", err)
+			failf("Failed to get cache download url: %s", err)
 		}
 		cacheURI = downloadURL
 
 		cacheReader, err = performRequest(downloadURL)
 		if err != nil {
-			logErrorfAndExit("Failed to perform cache download request: %s", err)
+			failf("Failed to perform cache download request: %s", err)
 		}
 	}
 
@@ -204,7 +204,7 @@ func main() {
 
 		r, hdr, err := readFirstEntry(cacheRecorderReader)
 		if err != nil {
-			logErrorfAndExit("Failed to get first archive entry, error: %s", err)
+			failf("Failed to get first archive entry, error: %s", err)
 		}
 
 		cacheRecorderReader.Restore()
@@ -212,12 +212,12 @@ func main() {
 		if filepath.Base(hdr.Name) == "archive_info.json" {
 			b, err := ioutil.ReadAll(r)
 			if err != nil {
-				logErrorfAndExit("Failed to read first archive entry, error: %s", err)
+				failf("Failed to read first archive entry, error: %s", err)
 			}
 
 			archiveStackID, err := parseStackID(b)
 			if err != nil {
-				logErrorfAndExit("Failed to parse first archive entry, error: %s", err)
+				failf("Failed to parse first archive entry, error: %s", err)
 			}
 			log.Printf("archive stack id: %s", archiveStackID)
 
@@ -245,7 +245,7 @@ func main() {
 			log.Printf("Retry failed, unable to uncompress cache archive, error: %s", err)
 			return
 		}
-		logErrorfAndExit("Failed to uncompress cache archive: %s", err)
+		failf("Failed to uncompress cache archive: %s", err)
 	}
 
 	fmt.Println()
