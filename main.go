@@ -235,6 +235,9 @@ func main() {
 	log.Infof("Extracting cache archive")
 
 	if err := extractCacheArchive(cacheRecorderReader); err != nil {
+		log.Debugf("Failed to uncompress cache archive stream: %s", err)
+		log.Debugf("Downloading the archive file and trying to uncompress using tar tool")
+
 		pth, err := downloadCacheArchive(cacheURI)
 		if err != nil {
 			log.Printf("Retry failed, unable to download cache archive, error: %s", err)
@@ -245,7 +248,6 @@ func main() {
 			log.Printf("Retry failed, unable to uncompress cache archive, error: %s", err)
 			return
 		}
-		failf("Failed to uncompress cache archive: %s", err)
 	}
 
 	fmt.Println()
