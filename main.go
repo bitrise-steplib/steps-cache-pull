@@ -204,7 +204,7 @@ func main() {
 
 		r, hdr, err := readFirstEntry(cacheRecorderReader)
 		if err != nil {
-			failf("Failed to get first archive entry, error: %s", err)
+			failf("Failed to get first archive entry: %s", err)
 		}
 
 		cacheRecorderReader.Restore()
@@ -212,12 +212,12 @@ func main() {
 		if filepath.Base(hdr.Name) == "archive_info.json" {
 			b, err := ioutil.ReadAll(r)
 			if err != nil {
-				failf("Failed to read first archive entry, error: %s", err)
+				failf("Failed to read first archive entry: %s", err)
 			}
 
 			archiveStackID, err := parseStackID(b)
 			if err != nil {
-				failf("Failed to parse first archive entry, error: %s", err)
+				failf("Failed to parse first archive entry: %s", err)
 			}
 			log.Printf("archive stack id: %s", archiveStackID)
 
@@ -235,18 +235,16 @@ func main() {
 	log.Infof("Extracting cache archive")
 
 	if err := extractCacheArchive(cacheRecorderReader); err != nil {
-		log.Debugf("Failed to uncompress cache archive stream: %s", err)
-		log.Debugf("Downloading the archive file and trying to uncompress using tar tool")
+		log.Warnf("Failed to uncompress cache archive stream: %s", err)
+		log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
 
 		pth, err := downloadCacheArchive(cacheURI)
 		if err != nil {
-			log.Printf("Retry failed, unable to download cache archive, error: %s", err)
-			return
+			failf("Fallback failed, unable to download cache archive: %s", err)
 		}
 
 		if err := uncompressArchive(pth); err != nil {
-			log.Printf("Retry failed, unable to uncompress cache archive, error: %s", err)
-			return
+			failf("Fallback failed, unable to uncompress cache archive file: %s", err)
 		}
 	}
 
