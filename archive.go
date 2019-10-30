@@ -13,7 +13,7 @@ import (
 
 // uncompressArchive invokes tar tool against a local archive file.
 func uncompressArchive(pth string) error {
-	cmd := command.New("tar", "-xPf", pth)
+	cmd := command.New("tar", "-xpPf", pth)
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		errMsg := err.Error()
@@ -27,7 +27,7 @@ func uncompressArchive(pth string) error {
 
 // extractCacheArchive invokes tar tool by piping the archive to the command's input.
 func extractCacheArchive(r io.Reader) error {
-	cmd := command.New("tar", "-xPf", "/dev/stdin")
+	cmd := command.New("tar", "-xpPf", "/dev/stdin")
 	cmd.SetStdin(r)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		errMsg := err.Error()
