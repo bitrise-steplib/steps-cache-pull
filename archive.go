@@ -5,6 +5,8 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"os"
+	"strings"
 
 	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/errorutil"
@@ -22,7 +24,46 @@ func uncompressArchive(pth string) error {
 		}
 		return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), errMsg)
 	}
-	return nil
+
+	tarFile, err := os.Open(pth)
+	if err != nil {
+		return err
+	}
+
+	tr := tar.NewReader(tarFile)
+
+	for {
+		header, err := tr.Next()
+
+		switch {
+		// if no more files are found return
+		case err == io.EOF:
+			return nil
+		// return any other error
+		case err != nil:
+			return err
+		// if the header is nil, just skip it (not sure how this happens)
+		case header == nil:
+			continue
+		}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			dir := strings.TrimSuffix(header.Name, "/")
+
+			log.Debugf("D-chtimes: %s - %s - %s", dir, header.AccessTime, header.ModTime)
+
+			if err := os.Chtimes(dir, header.AccessTime, header.ModTime); err != nil {
+				log.Debugf("failed to chtimes (%s), error: %s", dir, err)
+			}
+		case tar.TypeReg, tar.TypeLink, tar.TypeSymlink:
+			log.Debugf("F-chtimes: %s - %s - %s", header.Name, header.AccessTime, header.ModTime)
+
+			if err := os.Chtimes(header.Name, header.AccessTime, header.ModTime); err != nil {
+				log.Debugf("failed to chtimes (%s), error: %s", header.Name, err)
+			}
+		}
+	}
 }
 
 // extractCacheArchive invokes tar tool by piping the archive to the command's input.

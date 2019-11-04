@@ -234,19 +234,19 @@ func main() {
 	fmt.Println()
 	log.Infof("Extracting cache archive")
 
-	if err := extractCacheArchive(cacheRecorderReader); err != nil {
-		log.Warnf("Failed to uncompress cache archive stream: %s", err)
-		log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
+	// if err := extractCacheArchive(cacheRecorderReader); err != nil {
+	// 	log.Warnf("Failed to uncompress cache archive stream: %s", err)
+	// 	log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
 
-		pth, err := downloadCacheArchive(cacheURI)
-		if err != nil {
-			failf("Fallback failed, unable to download cache archive: %s", err)
-		}
-
-		if err := uncompressArchive(pth); err != nil {
-			failf("Fallback failed, unable to uncompress cache archive file: %s", err)
-		}
+	pth, err := downloadCacheArchive(cacheURI)
+	if err != nil {
+		failf("Fallback failed, unable to download cache archive: %s", err)
 	}
+
+	if err := uncompressArchive(pth); err != nil {
+		failf("Fallback failed, unable to uncompress cache archive file: %s", err)
+	}
+	// }
 
 	fmt.Println()
 	log.Donef("Done")
