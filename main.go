@@ -251,5 +251,5 @@ func main() {
 
 	fmt.Println()
 	log.Donef("Done")
-	log.Printf("Took: " + time.Now().Sub(startTime).String())
+	log.Printf("Took: " + time.Since(startTime).String())
 }
