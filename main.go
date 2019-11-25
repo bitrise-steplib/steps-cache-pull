@@ -20,7 +20,7 @@ import (
 type Config struct {
 	CacheAPIURL string `env:"cache_api_url"`
 	DebugMode   bool   `env:"is_debug_mode,opt[true,false]"`
-	StackID     string `env:"BITRISE_STACK_ID"`
+	StackID     string `env:"BITRISEIO_STACK_ID"`
 }
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
@@ -197,7 +197,8 @@ func main() {
 
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
-	if currentStackID := os.Getenv("BITRISE_STACK_ID"); len(currentStackID) > 0 {
+	currentStackID := strings.TrimSpace(conf.StackID)
+	if len(currentStackID) > 0 {
 		fmt.Println()
 		log.Infof("Checking archive and current stacks")
 		log.Printf("current stack id: %s", currentStackID)
