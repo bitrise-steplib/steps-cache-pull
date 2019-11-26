@@ -222,7 +222,7 @@ func main() {
 			}
 			log.Printf("archive stack id: %s", archiveStackID)
 
-			if len(archiveStackID) > 0 && archiveStackID != currentStackID {
+			if archiveStackID != currentStackID {
 				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackID, currentStackID)
 				log.Warnf("Skipping cache pull, because of the stack has changed")
 				os.Exit(0)
