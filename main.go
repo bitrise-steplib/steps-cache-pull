@@ -20,7 +20,7 @@ import (
 type Config struct {
 	CacheAPIURL string `env:"cache_api_url"`
 	DebugMode   bool   `env:"is_debug_mode,opt[true,false]"`
-	StackID     string `env:"BITRISE_STACK_ID"`
+	StackID     string `env:"BITRISEIO_STACK_ID"`
 }
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
@@ -197,7 +197,8 @@ func main() {
 
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
-	if currentStackID := os.Getenv("BITRISE_STACK_ID"); len(currentStackID) > 0 {
+	currentStackID := strings.TrimSpace(conf.StackID)
+	if len(currentStackID) > 0 {
 		fmt.Println()
 		log.Infof("Checking archive and current stacks")
 		log.Printf("current stack id: %s", currentStackID)
@@ -221,7 +222,7 @@ func main() {
 			}
 			log.Printf("archive stack id: %s", archiveStackID)
 
-			if len(archiveStackID) > 0 && archiveStackID != currentStackID {
+			if archiveStackID != currentStackID {
 				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackID, currentStackID)
 				log.Warnf("Skipping cache pull, because of the stack has changed")
 				os.Exit(0)
@@ -250,5 +251,5 @@ func main() {
 
 	fmt.Println()
 	log.Donef("Done")
-	log.Printf("Took: " + time.Now().Sub(startTime).String())
+	log.Printf("Took: " + time.Since(startTime).String())
 }

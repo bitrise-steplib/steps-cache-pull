@@ -104,6 +104,7 @@ workflows:
             set -ex
 
             echo "test" > "$TMP_DIR/File.txt"
+            echo '{ "stack_id": ${BITRISEIO_STACK_ID} }' > "/tmp/archive_info.json"
             tar -cvf "archive.tar.gz" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
             envman add --key "BITRISE_CACHE_API_URL" --value "file://$TMP_DIR/archive.tar.gz"
@@ -151,6 +152,7 @@ workflows:
             set -ex
 
             echo "test" > "$TMP_DIR/File.txt"
+            echo '{ "stack_id": ${BITRISEIO_STACK_ID} }' > "/tmp/archive_info.json"
             tar -cvf "archive.tar" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
             envman add --key "BITRISE_CACHE_API_URL" --value "file://$TMP_DIR/archive.tar"
