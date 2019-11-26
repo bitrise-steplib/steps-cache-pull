@@ -199,7 +199,7 @@ workflows:
             # !/bin/env bash
             set -ex
             echo "test" > $TMP_DIR/File.txt
-    - cache-push:
+    - git::https://github.com/bitrise-steplib/steps-cache-push.git@TOOL-1230-update-stackid:
         run_if: true
         inputs:
         - cache_paths: $TMP_DIR/File.txt
