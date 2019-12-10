@@ -1,12 +1,35 @@
 title: "Bitrise.io Cache:Pull"
-summary: "Download Build Cache from Bitrise.io"
+summary: "Download the build cache from bitrise.io."
 description: |-
-  Downloads the Build Cache from Bitrise.io, and moves the files back to
-  their original place.
+  Downloads the build cache from bitrise.io, and moves the files back to
+  their original place. The aim is to speed up your builds as not having to download every single dependency every time can be a serious timesaver.
 
-  For more information on setting it up and for tips & tricks, head over to our Bitrise DevCenter
-  at [http://devcenter.bitrise.io/caching/about-caching/](http://devcenter.bitrise.io/caching/about-caching/).
+  ### Configuring the Step
+  
+  To be able to pull from a previous build's cache, you need two things.
 
+  1. The **Cache:Push** Step at the end of your Workflow.
+  2. At least one successful build on the same branch in the last seven days.
+
+  If there was no successful build on the branch in question in the last seven days, the cache automatically gets deleted.
+
+  ### Troubleshooting
+
+  If the Step fails, check the time of the latest build. If there was a successful build in the last seven days, check if the Workflow included the **Cache:Push** Step.
+
+  If the **Cache:Push** Step was present, check the inputs of the Step. It's possible, for example, that the provided cache path is incorrect.
+
+  ### Useful links
+  
+  [Caching](https://devcenter.bitrise.io/builds/caching/about-caching-index/)
+
+  ### Related Steps
+  
+  [Cache:Push](https://www.bitrise.io/integrations/steps/cache-push)
+  [Run CocoaPods install](https://www.bitrise.io/integrations/steps/cocoapods-install)
+  [Run npm command](https://www.bitrise.io/integrations/steps/npm)
+  [yarn](https://www.bitrise.io/integrations/steps/yarn)
+  
 website: https://github.com/bitrise-steplib/steps-cache-pull
 source_code_url: https://github.com/bitrise-steplib/steps-cache-pull.git
 support_url: https://github.com/bitrise-steplib/steps-cache-pull/issues
