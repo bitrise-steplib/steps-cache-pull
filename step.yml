@@ -21,14 +21,14 @@ description: |-
 
   ### Useful links
   
-  [Caching](https://devcenter.bitrise.io/builds/caching/about-caching-index/)
+  - [Caching](https://devcenter.bitrise.io/builds/caching/about-caching-index/)
 
   ### Related Steps
   
-  [Cache:Push](https://www.bitrise.io/integrations/steps/cache-push)
-  [Run CocoaPods install](https://www.bitrise.io/integrations/steps/cocoapods-install)
-  [Run npm command](https://www.bitrise.io/integrations/steps/npm)
-  [yarn](https://www.bitrise.io/integrations/steps/yarn)
+  - [Cache:Push](https://www.bitrise.io/integrations/steps/cache-push)
+  - [Run CocoaPods install](https://www.bitrise.io/integrations/steps/cocoapods-install)
+  - [Run npm command](https://www.bitrise.io/integrations/steps/npm)
+  - [yarn](https://www.bitrise.io/integrations/steps/yarn)
   
 website: https://github.com/bitrise-steplib/steps-cache-pull
 source_code_url: https://github.com/bitrise-steplib/steps-cache-pull.git
