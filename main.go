@@ -16,6 +16,10 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 )
 
+const (
+	stepID = "steps-cache-pull"
+)
+
 // Config stores the step inputs.
 type Config struct {
 	CacheAPIURL string `env:"cache_api_url"`
@@ -197,6 +201,15 @@ func main() {
 
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
+	if bytesRead, err := ioutil.ReadAll(cacheRecorderReader); err == nil {
+		numBytesRead := len(bytesRead)
+		data := map[string]interface{}{
+			"archive_size": numBytesRead,
+		}
+		log.RInfof(stepID, "archive_size", data, "Size of cache archive: %d Bytes", numBytesRead)
+	}
+	cacheRecorderReader.Restore()
+
 	currentStackID := strings.TrimSpace(conf.StackID)
 	if len(currentStackID) > 0 {
 		fmt.Println()
@@ -238,6 +251,7 @@ func main() {
 	if err := extractCacheArchive(cacheRecorderReader); err != nil {
 		log.Warnf("Failed to uncompress cache archive stream: %s", err)
 		log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
+		log.RInfof(stepID, "cache_archive_fallback", nil, "Failed to uncompress cache archive stream: %s", err)
 
 		pth, err := downloadCacheArchive(cacheURI)
 		if err != nil {
