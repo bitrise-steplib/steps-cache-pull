@@ -33,7 +33,7 @@ workflows:
   local_stack_change_test:
     envs:
     - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_local_stack_change_test
-    - BITRISE_STACK_ID: "Stack ID"
+    - BITRISEIO_STACK_ID: "Stack ID"
     steps:
     - script:
         title: Cleanup $TMP_DIR
