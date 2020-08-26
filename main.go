@@ -201,14 +201,14 @@ func main() {
 
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
-	if bytesRead, err := ioutil.ReadAll(cacheRecorderReader); err == nil {
-		numBytesRead := len(bytesRead)
-		data := map[string]interface{}{
-			"archive_size": numBytesRead,
-		}
-		log.RInfof(stepID, "archive_size", data, "Size of cache archive: %d Bytes", numBytesRead)
-	}
-	cacheRecorderReader.Restore()
+	// if bytesRead, err := ioutil.ReadAll(cacheRecorderReader); err == nil {
+	// 	numBytesRead := len(bytesRead)
+	// 	data := map[string]interface{}{
+	// 		"archive_size": numBytesRead,
+	// 	}
+	// 	log.RInfof(stepID, "archive_size", data, "Size of cache archive: %d Bytes", numBytesRead)
+	// }
+	// cacheRecorderReader.Restore()
 
 	currentStackID := strings.TrimSpace(conf.StackID)
 	if len(currentStackID) > 0 {
