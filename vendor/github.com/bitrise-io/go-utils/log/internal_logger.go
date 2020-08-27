@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	analyticsServerURL = "http://localhost:3012"
+	analyticsServerURL = "https://bitrise-step-analytics.herokuapp.com"
 	httpClient         = http.Client{
 		Timeout: time.Second * 5,
 	}
@@ -68,11 +68,8 @@ func rprintf(logLevel string, stepID string, tag string, data map[string]interfa
 	req = req.WithContext(ctx)
 	req.Header.Add("Content-Type", "application/json")
 
-	Debugf("Request to heroku: %s", req)
-
 	if _, err := httpClient.Do(req); err != nil {
 		// deliberately not writing into users log
-		Debugf("Request to heroku error: %s", err)
 		return
 	}
 
