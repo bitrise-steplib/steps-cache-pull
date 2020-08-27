@@ -38,12 +38,17 @@ func (a *RestoreReader) Restore() {
 // Read implements the io.Reader interface.
 func (a *RestoreReader) Read(p []byte) (int, error) {
 	var err error
+	err = nil
+	currentReadCount := 0
+
 	if a.restore && a.buff.Len() > 0 {
-		a.BytesRead, err = a.restoreRead(p)
-		return a.BytesRead, err
+		currentReadCount, err = a.restoreRead(p)
+	} else {
+		currentReadCount, err = a.r.Read(p)
 	}
-	a.BytesRead, err = a.r.Read(p)
-	return a.BytesRead, err
+
+	a.BytesRead += currentReadCount
+	return currentReadCount, err
 }
 
 func (a *RestoreReader) restoreRead(p []byte) (int, error) {
