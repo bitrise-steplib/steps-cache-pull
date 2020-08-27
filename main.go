@@ -60,10 +60,17 @@ func downloadCacheArchive(url string) (string, error) {
 		return "", fmt.Errorf("failed to open the local cache file for write: %s", err)
 	}
 
-	_, err = io.Copy(f, resp.Body)
+	var bytesWritten int64
+	bytesWritten, err = io.Copy(f, resp.Body)
 	if err != nil {
 		return "", err
 	}
+
+	data := map[string]interface{}{
+		"cache_archive_size": bytesWritten,
+	}
+	log.Debugf("Size of downloaded cache archive: %d Bytes", bytesWritten)
+	log.RInfof(stepID, "cache_fallback_archive_size", data, "Size of downloaded cache archive: %d Bytes", bytesWritten)
 
 	return cacheArchivePath, nil
 }
