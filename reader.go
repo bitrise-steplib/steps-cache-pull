@@ -69,6 +69,7 @@ func (a *RestoreReader) restoreRead(p []byte) (int, error) {
 
 	m, err := a.r.Read(b)
 	if err != nil {
+		log.Debugf("Error reading reader after reading %d bytes: %s", n+m, err)
 		return n + m, err
 	}
 
