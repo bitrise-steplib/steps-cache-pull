@@ -257,10 +257,10 @@ func main() {
 		}
 	} else {
 		data := map[string]interface{}{
-			"archive_size": cacheRecorderReader.BytesRead,
+			"cache_archive_size": cacheRecorderReader.BytesRead,
 		}
 		log.Debugf("Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
-		log.RInfof(stepID, "archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
+		log.RInfof(stepID, "cache_archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 	}
 
 	fmt.Println()
