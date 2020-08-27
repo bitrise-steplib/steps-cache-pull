@@ -15,7 +15,8 @@ type RestoreReader struct {
 	orig io.Reader
 	tee  io.Reader
 
-	restore bool
+	restore   bool
+	BytesRead int
 }
 
 // NewRestoreReader creates a new RestoreReader.
@@ -24,12 +25,14 @@ func NewRestoreReader(r io.Reader) *RestoreReader {
 	a.orig = r
 	a.tee = io.TeeReader(r, &a.buff)
 	a.r = a.tee
+	a.BytesRead = 0
 	return &a
 }
 
 // Restore instructs the reader to restore previous read sequences.
 func (a *RestoreReader) Restore() {
 	a.restore = true
+	a.BytesRead = 0
 }
 
 // Read implements the io.Reader interface.
@@ -73,6 +76,8 @@ func (a *RestoreReader) restoreRead(p []byte) (int, error) {
 	log.Debugf("%d bytes read all together", n+m)
 
 	_ = copy(p[n:], b)
+
+	a.BytesRead = n + m
 
 	return n + m, nil
 }

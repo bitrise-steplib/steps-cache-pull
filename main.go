@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	stepID = "steps-cache-pull"
+	stepID = "cache-pull"
 )
 
 // Config stores the step inputs.
@@ -201,15 +201,6 @@ func main() {
 
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
-	// if bytesRead, err := ioutil.ReadAll(cacheRecorderReader); err == nil {
-	// 	numBytesRead := len(bytesRead)
-	// 	data := map[string]interface{}{
-	// 		"archive_size": numBytesRead,
-	// 	}
-	// 	log.RInfof(stepID, "archive_size", data, "Size of cache archive: %d Bytes", numBytesRead)
-	// }
-	// cacheRecorderReader.Restore()
-
 	currentStackID := strings.TrimSpace(conf.StackID)
 	if len(currentStackID) > 0 {
 		fmt.Println()
@@ -251,7 +242,10 @@ func main() {
 	if err := extractCacheArchive(cacheRecorderReader); err != nil {
 		log.Warnf("Failed to uncompress cache archive stream: %s", err)
 		log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
-		log.RInfof(stepID, "cache_archive_fallback", nil, "Failed to uncompress cache archive stream: %s", err)
+		data := map[string]interface{}{
+			"archive_bytes_read": cacheRecorderReader.BytesRead,
+		}
+		log.RInfof(stepID, "cache_archive_fallback", data, "Failed to uncompress cache archive stream: %s", err)
 
 		pth, err := downloadCacheArchive(cacheURI)
 		if err != nil {
@@ -261,6 +255,12 @@ func main() {
 		if err := uncompressArchive(pth); err != nil {
 			failf("Fallback failed, unable to uncompress cache archive file: %s", err)
 		}
+	} else {
+		data := map[string]interface{}{
+			"archive_size": cacheRecorderReader.BytesRead,
+		}
+		log.Debugf("Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
+		log.RInfof(stepID, "archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 	}
 
 	fmt.Println()
