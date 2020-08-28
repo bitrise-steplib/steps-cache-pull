@@ -33,7 +33,6 @@ workflows:
   local_stack_change_test:
     envs:
     - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_local_stack_change_test
-    - BITRISE_STACK_ID: "Stack ID"
     steps:
     - script:
         title: Cleanup $TMP_DIR
@@ -104,8 +103,8 @@ workflows:
             set -ex
 
             echo "test" > "$TMP_DIR/File.txt"
-            echo '{ "stack_id": ${BITRISEIO_STACK_ID} }' > "/tmp/archive_info.json"
-            tar -cvf "archive.tar.gz" "File.txt"
+            echo { \"stack_id\": \"${BITRISEIO_STACK_ID}\" } > $TMP_DIR/archive_info.json
+            tar -cvf "archive.tar.gz" "archive_info.json" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
             envman add --key "BITRISE_CACHE_API_URL" --value "file://$TMP_DIR/archive.tar.gz"
     - path::./:
@@ -152,8 +151,8 @@ workflows:
             set -ex
 
             echo "test" > "$TMP_DIR/File.txt"
-            echo '{ "stack_id": ${BITRISEIO_STACK_ID} }' > "/tmp/archive_info.json"
-            tar -cvf "archive.tar" "File.txt"
+            echo { \"stack_id\": \"${BITRISEIO_STACK_ID}\" } > $TMP_DIR/archive_info.json
+            tar -cvf "archive.tar" "archive_info.json" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
             envman add --key "BITRISE_CACHE_API_URL" --value "file://$TMP_DIR/archive.tar"
     - path::./:

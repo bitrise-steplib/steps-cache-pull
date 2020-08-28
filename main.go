@@ -16,6 +16,10 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 )
 
+const (
+	stepID = "cache-pull"
+)
+
 // Config stores the step inputs.
 type Config struct {
 	CacheAPIURL string `env:"cache_api_url"`
@@ -56,10 +60,17 @@ func downloadCacheArchive(url string) (string, error) {
 		return "", fmt.Errorf("failed to open the local cache file for write: %s", err)
 	}
 
-	_, err = io.Copy(f, resp.Body)
+	var bytesWritten int64
+	bytesWritten, err = io.Copy(f, resp.Body)
 	if err != nil {
 		return "", err
 	}
+
+	data := map[string]interface{}{
+		"cache_archive_size": bytesWritten,
+	}
+	log.Debugf("Size of downloaded cache archive: %d Bytes", bytesWritten)
+	log.RInfof(stepID, "cache_fallback_archive_size", data, "Size of downloaded cache archive: %d Bytes", bytesWritten)
 
 	return cacheArchivePath, nil
 }
@@ -238,6 +249,10 @@ func main() {
 	if err := extractCacheArchive(cacheRecorderReader); err != nil {
 		log.Warnf("Failed to uncompress cache archive stream: %s", err)
 		log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
+		data := map[string]interface{}{
+			"archive_bytes_read": cacheRecorderReader.BytesRead,
+		}
+		log.RInfof(stepID, "cache_archive_fallback", data, "Failed to uncompress cache archive stream: %s", err)
 
 		pth, err := downloadCacheArchive(cacheURI)
 		if err != nil {
@@ -247,6 +262,12 @@ func main() {
 		if err := uncompressArchive(pth); err != nil {
 			failf("Fallback failed, unable to uncompress cache archive file: %s", err)
 		}
+	} else {
+		data := map[string]interface{}{
+			"cache_archive_size": cacheRecorderReader.BytesRead,
+		}
+		log.Debugf("Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
+		log.RInfof(stepID, "cache_archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 	}
 
 	fmt.Println()
