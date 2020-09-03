@@ -25,7 +25,7 @@ type Config struct {
 	CacheAPIURL string `env:"cache_api_url"`
 	DebugMode   bool   `env:"is_debug_mode,opt[true,false]"`
 	StackID     string `env:"BITRISEIO_STACK_ID"`
-	BuildSlug   string `env:BITRISE_BUILD_SLUG`
+	BuildSlug   string `env:"BITRISE_BUILD_SLUG"`
 }
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
