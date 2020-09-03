@@ -25,11 +25,12 @@ type Config struct {
 	CacheAPIURL string `env:"cache_api_url"`
 	DebugMode   bool   `env:"is_debug_mode,opt[true,false]"`
 	StackID     string `env:"BITRISEIO_STACK_ID"`
+	BuildSlug   string `env:"BITRISE_BUILD_SLUG"`
 }
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
 // If the URI points to a local file it returns the local paths.
-func downloadCacheArchive(url string) (string, error) {
+func downloadCacheArchive(url string, buildSlug string) (string, error) {
 	if strings.HasPrefix(url, "file://") {
 		return strings.TrimPrefix(url, "file://"), nil
 	}
@@ -68,6 +69,7 @@ func downloadCacheArchive(url string) (string, error) {
 
 	data := map[string]interface{}{
 		"cache_archive_size": bytesWritten,
+		"build_slug":         buildSlug,
 	}
 	log.Debugf("Size of downloaded cache archive: %d Bytes", bytesWritten)
 	log.RInfof(stepID, "cache_fallback_archive_size", data, "Size of downloaded cache archive: %d Bytes", bytesWritten)
@@ -251,10 +253,11 @@ func main() {
 		log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
 		data := map[string]interface{}{
 			"archive_bytes_read": cacheRecorderReader.BytesRead,
+			"build_slug":         conf.BuildSlug,
 		}
 		log.RInfof(stepID, "cache_archive_fallback", data, "Failed to uncompress cache archive stream: %s", err)
 
-		pth, err := downloadCacheArchive(cacheURI)
+		pth, err := downloadCacheArchive(cacheURI, conf.BuildSlug)
 		if err != nil {
 			failf("Fallback failed, unable to download cache archive: %s", err)
 		}
@@ -265,6 +268,7 @@ func main() {
 	} else {
 		data := map[string]interface{}{
 			"cache_archive_size": cacheRecorderReader.BytesRead,
+			"build_slug":         conf.BuildSlug,
 		}
 		log.Debugf("Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 		log.RInfof(stepID, "cache_archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
