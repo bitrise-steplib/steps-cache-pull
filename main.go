@@ -177,10 +177,10 @@ func main() {
 	startTime := time.Now()
 
 	var cacheReader io.Reader
-	var cacheURI string
+	// var cacheURI string
 
 	if strings.HasPrefix(conf.CacheAPIURL, "file://") {
-		cacheURI = conf.CacheAPIURL
+		// cacheURI = conf.CacheAPIURL
 
 		fmt.Println()
 		log.Infof("Using local cache archive")
@@ -200,7 +200,7 @@ func main() {
 		if err != nil {
 			failf("Failed to get cache download url: %s", err)
 		}
-		cacheURI = downloadURL
+		// cacheURI = downloadURL
 
 		cacheReader, err = performRequest(downloadURL)
 		if err != nil {
