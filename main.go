@@ -176,6 +176,10 @@ func main() {
 
 	startTime := time.Now()
 
+	fmt.Println()
+	log.Donef("Start downloading cache")
+	fmt.Println(startTime)
+
 	var cacheReader io.Reader
 	var cacheURI string
 
@@ -207,6 +211,17 @@ func main() {
 			failf("Failed to perform cache download request: %s", err)
 		}
 	}
+
+	fmt.Println()
+	log.Donef("Done downloading cache")
+	fmt.Println(time.Now())
+	log.Printf("Took: " + time.Since(startTime).String())
+
+	startTime = time.Now()
+
+	fmt.Println()
+	log.Donef("Start extracting cache")
+	fmt.Println(startTime)
 
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
@@ -284,6 +299,7 @@ func main() {
 	// }
 
 	fmt.Println()
-	log.Donef("Done")
+	log.Donef("Done extracting cache")
+	fmt.Println(time.Now())
 	log.Printf("Took: " + time.Since(startTime).String())
 }
