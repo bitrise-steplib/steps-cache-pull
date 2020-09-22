@@ -254,7 +254,7 @@ func main() {
 			"build_slug":         conf.BuildSlug,
 		}
 		log.RInfof(stepID, "cache_archive_fallback", data, "Failed to uncompress cache archive stream: %s", err)
-		log.Printf("archive_bytes_read: %s", cacheRecorderReader.BytesRead)
+		log.Donef("Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 
 		failf("Failed to uncompress cache archive stream: %s", err)
 
@@ -273,7 +273,7 @@ func main() {
 			"cache_archive_size": cacheRecorderReader.BytesRead,
 			"build_slug":         conf.BuildSlug,
 		}
-		log.Debugf("Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
+		log.Donef("Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 		log.RInfof(stepID, "cache_archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 	}
 
