@@ -71,7 +71,7 @@ func downloadCacheArchive(url string, buildSlug string) (string, error) {
 		"cache_archive_size": bytesWritten,
 		"build_slug":         buildSlug,
 	}
-	log.Debugf("Size of downloaded cache archive: %d Bytes", bytesWritten)
+	log.Donef("Size of downloaded cache archive: %d Bytes", bytesWritten)
 	log.RInfof(stepID, "cache_fallback_archive_size", data, "Size of downloaded cache archive: %d Bytes", bytesWritten)
 
 	return cacheArchivePath, nil
