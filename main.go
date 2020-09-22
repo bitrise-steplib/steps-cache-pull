@@ -249,13 +249,16 @@ func main() {
 	log.Infof("Extracting cache archive")
 
 	if err := extractCacheArchive(cacheRecorderReader); err != nil {
+		data := map[string]interface{}{
+			"archive_bytes_read": cacheRecorderReader.BytesRead,
+			"build_slug":         conf.BuildSlug,
+		}
+		log.RInfof(stepID, "cache_archive_fallback", data, "Failed to uncompress cache archive stream: %s", err)
+		log.Printf("archive_bytes_read: %s", cacheRecorderReader.BytesRead)
+
 		failf("Failed to uncompress cache archive stream: %s", err)
+
 		// log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
-		// data := map[string]interface{}{
-		// 	"archive_bytes_read": cacheRecorderReader.BytesRead,
-		// 	"build_slug":         conf.BuildSlug,
-		// }
-		// log.RInfof(stepID, "cache_archive_fallback", data, "Failed to uncompress cache archive stream: %s", err)
 
 		// pth, err := downloadCacheArchive(cacheURI, conf.BuildSlug)
 		// if err != nil {
