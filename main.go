@@ -207,6 +207,7 @@ func main() {
 			failf("Failed to perform cache download request: %s", err)
 		}
 	}
+	fmt.Println(cacheURI)
 
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
