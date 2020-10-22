@@ -27,7 +27,8 @@ func uncompressArchive(pth string) error {
 
 // extractCacheArchive invokes tar tool by piping the archive to the command's input.
 func extractCacheArchive(r io.Reader) error {
-	cmd := command.New("tar", "-xPf", "-")
+	// cmd := command.New("tar", "-xPf", "-")
+	cmd := command.New("tar", "-xPf", "/dev/stdin")
 	cmd.SetStdin(r)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		errMsg := err.Error()
