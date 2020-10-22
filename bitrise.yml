@@ -10,6 +10,7 @@ app:
 workflows:
   ci:
     before_run:
+    - audit-this-step
     - go-tests
     - remote_cache_test
     - local_tar_test
