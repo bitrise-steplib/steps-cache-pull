@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
+	"github.com/c4milo/unpackit"
 	"io"
 
 	"github.com/bitrise-io/go-utils/command"
@@ -27,14 +28,12 @@ func uncompressArchive(pth string) error {
 
 // extractCacheArchive invokes tar tool by piping the archive to the command's input.
 func extractCacheArchive(r io.Reader) error {
-	cmd := command.New("tar", "-xPf", "/dev/stdin")
-	cmd.SetStdin(r)
-	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+	//cmd := command.New("tar", "-xPf", "/dev/stdin")
+	//cmd.SetStdin(r)
+
+	if _, err := unpackit.Unpack(r, "/"); err != nil {
 		errMsg := err.Error()
-		if errorutil.IsExitStatusError(err) {
-			errMsg = out
-		}
-		return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), errMsg)
+		return fmt.Errorf("streaming unpack of archive failed: %s", errMsg)
 	}
 
 	if rc, ok := r.(io.ReadCloser); ok {
