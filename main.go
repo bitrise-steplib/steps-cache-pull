@@ -253,7 +253,7 @@ func main() {
 
 	if err := extractCacheArchive(cacheRecorderReader); err != nil {
 		if !conf.AllowFallback {
-			failf("failed to uncompress cache: %s", err)
+			failf("Failed to uncompress cache archive stream: %s", err)
 		}
 
 		log.Warnf("Failed to uncompress cache archive stream: %s", err)
