@@ -22,10 +22,12 @@ const (
 
 // Config stores the step inputs.
 type Config struct {
-	CacheAPIURL string `env:"cache_api_url"`
-	DebugMode   bool   `env:"is_debug_mode,opt[true,false]"`
-	StackID     string `env:"BITRISEIO_STACK_ID"`
-	BuildSlug   string `env:"BITRISE_BUILD_SLUG"`
+	CacheAPIURL   string `env:"cache_api_url"`
+	DebugMode     bool   `env:"is_debug_mode,opt[true,false]"`
+	AllowFallback bool   `env:"allow_fallback,opt[true,false]"`
+
+	StackID   string `env:"BITRISEIO_STACK_ID"`
+	BuildSlug string `env:"BITRISE_BUILD_SLUG"`
 }
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
@@ -207,6 +209,7 @@ func main() {
 			failf("Failed to perform cache download request: %s", err)
 		}
 	}
+	fmt.Println(cacheURI)
 
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
@@ -249,6 +252,10 @@ func main() {
 	log.Infof("Extracting cache archive")
 
 	if err := extractCacheArchive(cacheRecorderReader); err != nil {
+		if !conf.AllowFallback {
+			failf("failed to uncompress cache: %s", err)
+		}
+
 		log.Warnf("Failed to uncompress cache archive stream: %s", err)
 		log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
 		data := map[string]interface{}{

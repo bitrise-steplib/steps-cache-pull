@@ -78,3 +78,11 @@ inputs:
       description: |-
         Cache API URL
       is_dont_change_value: true
+  - allow_fallback: "true"
+    opts:
+      title: "Allow fallback cache extraction?"
+      is_required: true
+      value_options:
+      - "true"
+      - "false"
+
