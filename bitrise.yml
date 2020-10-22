@@ -66,6 +66,7 @@ workflows:
         inputs:
         - is_debug_mode: true 
         - cache_api_url: $BITRISE_CACHE_API_URL
+        - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
         inputs:
@@ -114,6 +115,7 @@ workflows:
         inputs:
         - is_debug_mode: true 
         - cache_api_url: $BITRISE_CACHE_API_URL
+        - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
         inputs:
@@ -162,6 +164,7 @@ workflows:
         inputs:
         - is_debug_mode: true
         - cache_api_url: $BITRISE_CACHE_API_URL
+        - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
         inputs:
@@ -216,6 +219,7 @@ workflows:
         inputs:
         - is_debug_mode: true
         - cache_api_url: $BITRISE_CACHE_API_URL
+        - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
         inputs:
@@ -227,6 +231,15 @@ workflows:
               echo "File.txt does not exist"
               exit 1
             fi
+
+  audit-this-step:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            stepman audit --step-yml ./step.yml
 
   # ----------------------------------------------------------------
   # --- Utility workflows
