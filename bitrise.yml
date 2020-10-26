@@ -13,12 +13,12 @@ workflows:
     - audit-this-step
     - go-tests
     - remote_cache_test
+    - remote_uncompressed_full_cycle_test
     - local_tar_test
     - local_gzip_test
     - local_stack_change_test
 #    - remote_compressed_test
 #    - remote_uncompressed_test
-    - remote_uncompressed_full_cycle_test
   
   test:
     before_run:
@@ -366,7 +366,7 @@ workflows:
                 else
                   ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/macos.tar.gz"
                 fi
-                wget -c $ARCHIVE_URL -O - | tar -x
+                wget -qc $ARCHIVE_URL -O - | tar -x
       - cache-push:
           run_if: true
           inputs:
