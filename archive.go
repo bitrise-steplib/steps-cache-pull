@@ -12,8 +12,8 @@ import (
 )
 
 // uncompressArchive invokes tar tool against a local archive file.
-func uncompressArchive(pth string) error {
-	cmd := command.New("tar", "-xPf", pth)
+func uncompressArchive(pth string, relative bool) error {
+	cmd := command.New("tar", processArgs(relative), pth)
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		errMsg := err.Error()
@@ -26,8 +26,8 @@ func uncompressArchive(pth string) error {
 }
 
 // extractCacheArchive invokes tar tool by piping the archive to the command's input.
-func extractCacheArchive(r io.Reader) error {
-	cmd := command.New("tar", "-xPf", "/dev/stdin")
+func extractCacheArchive(r io.Reader, relative bool) error {
+	cmd := command.New("tar", processArgs(relative), "/dev/stdin")
 	cmd.SetStdin(r)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		errMsg := err.Error()
@@ -41,6 +41,16 @@ func extractCacheArchive(r io.Reader) error {
 		return rc.Close()
 	}
 	return nil
+}
+
+func processArgs(relative bool) string {
+	var args string
+	if relative {
+		args = "-xf"
+	} else {
+		args = "-xPf"
+	}
+	return args
 }
 
 // readFirstEntry reads the first entry from a given archive.

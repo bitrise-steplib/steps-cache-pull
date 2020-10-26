@@ -22,10 +22,12 @@ const (
 
 // Config stores the step inputs.
 type Config struct {
-	CacheAPIURL string `env:"cache_api_url"`
-	DebugMode   bool   `env:"is_debug_mode,opt[true,false]"`
-	StackID     string `env:"BITRISEIO_STACK_ID"`
-	BuildSlug   string `env:"BITRISE_BUILD_SLUG"`
+	CacheAPIURL           string `env:"cache_api_url"`
+	DebugMode             bool   `env:"is_debug_mode,opt[true,false]"`
+	IsDirectURL           bool   `env:"is_direct_url,opt[true,false]"`
+	ExtractToRelativePath bool   `env:"extract_to_relative_path,opt[true,false]"`
+	StackID               string `env:"BITRISEIO_STACK_ID"`
+	BuildSlug             string `env:"BITRISE_BUILD_SLUG"`
 }
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
@@ -196,13 +198,17 @@ func main() {
 		fmt.Println()
 		log.Infof("Downloading remote cache archive")
 
-		downloadURL, err := getCacheDownloadURL(conf.CacheAPIURL)
-		if err != nil {
-			failf("Failed to get cache download url: %s", err)
+		var err error
+		if !conf.IsDirectURL {
+			cacheURI, err = getCacheDownloadURL(conf.CacheAPIURL)
+			if err != nil {
+				failf("Failed to get cache download url: %s", err)
+			}
+		} else {
+			cacheURI = conf.CacheAPIURL
 		}
-		cacheURI = downloadURL
 
-		cacheReader, err = performRequest(downloadURL)
+		cacheReader, err = performRequest(cacheURI)
 		if err != nil {
 			failf("Failed to perform cache download request: %s", err)
 		}
@@ -248,7 +254,7 @@ func main() {
 	fmt.Println()
 	log.Infof("Extracting cache archive")
 
-	if err := extractCacheArchive(cacheRecorderReader); err != nil {
+	if err := extractCacheArchive(cacheRecorderReader, conf.ExtractToRelativePath); err != nil {
 		log.Warnf("Failed to uncompress cache archive stream: %s", err)
 		log.Warnf("Downloading the archive file and trying to uncompress using tar tool")
 		data := map[string]interface{}{
@@ -262,7 +268,7 @@ func main() {
 			failf("Fallback failed, unable to download cache archive: %s", err)
 		}
 
-		if err := uncompressArchive(pth); err != nil {
+		if err := uncompressArchive(pth, conf.ExtractToRelativePath); err != nil {
 			failf("Fallback failed, unable to uncompress cache archive file: %s", err)
 		}
 	} else {
