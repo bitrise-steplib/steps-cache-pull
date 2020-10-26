@@ -366,7 +366,7 @@ workflows:
                 else
                   ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/macos.tar.gz"
                 fi
-                wget -c $ARCHIVE_URL -O - | tar -xz
+                wget -c $ARCHIVE_URL -O - | tar -x
       - cache-push:
           run_if: true
           inputs:
