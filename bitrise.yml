@@ -10,6 +10,7 @@ app:
 workflows:
   ci:
     before_run:
+    - audit-this-step
     - go-tests
     - remote_cache_test
     - local_tar_test
@@ -68,6 +69,7 @@ workflows:
         inputs:
         - is_debug_mode: true 
         - cache_api_url: $BITRISE_CACHE_API_URL
+        - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
         inputs:
@@ -116,6 +118,7 @@ workflows:
         inputs:
         - is_debug_mode: true 
         - cache_api_url: $BITRISE_CACHE_API_URL
+        - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
         inputs:
@@ -164,6 +167,7 @@ workflows:
         inputs:
         - is_debug_mode: true
         - cache_api_url: $BITRISE_CACHE_API_URL
+        - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
         inputs:
@@ -218,6 +222,7 @@ workflows:
         inputs:
         - is_debug_mode: true
         - cache_api_url: $BITRISE_CACHE_API_URL
+        - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
         inputs:
@@ -268,6 +273,7 @@ workflows:
             - cache_api_url: $BITRISE_CACHE_API_URL
             - is_direct_url: true
             - extract_to_relative_path: true
+            - allow_fallback: "false"
       - script:
           title: Test if archive uncompressed
           inputs:
@@ -318,6 +324,7 @@ workflows:
             - cache_api_url: $BITRISE_CACHE_API_URL
             - is_direct_url: true
             - extract_to_relative_path: true
+            - allow_fallback: "false"
       - script:
           title: Test if archive uncompressed
           inputs:
@@ -329,6 +336,15 @@ workflows:
                   echo "tmp/archive_info.json does not exist"
                   exit 1
                 fi
+
+  audit-this-step:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            stepman audit --step-yml ./step.yml
 
   # ----------------------------------------------------------------
   # --- Utility workflows

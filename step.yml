@@ -82,6 +82,7 @@ inputs:
     opts:
       category: Debug
       title: Sidestep Cache API?
+      is_required: true
       description: Is the provided URL direct download address?
       value_options:
       - "true"
@@ -90,7 +91,16 @@ inputs:
     opts:
       category: Debug
       title: Extract to relative path?
+      is_required: true
       description: Should we extract the archive content under current working directory?
       value_options:
-        - "true"
-        - "false"
+      - "true"
+      - "false"
+  - allow_fallback: "true"
+    opts:
+      category: Debug
+      title: "Allow fallback cache extraction?"
+      is_required: true
+      value_options:
+      - "true"
+      - "false"
