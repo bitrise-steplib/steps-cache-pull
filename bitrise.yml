@@ -275,17 +275,17 @@ workflows:
             - is_direct_url: true
             # - extract_to_relative_path: true
             - allow_fallback: "false"
-      - script:
-          title: Test if archive uncompressed
-          inputs:
-            - content: |
-                # !/bin/env bash
-                set -ex
+      # - script:
+      #     title: Test if archive uncompressed
+      #     inputs:
+      #       - content: |
+      #           # !/bin/env bash
+      #           set -ex
 
-                if [ ! -f $TMP_DIR/tmp/archive_info.json ]; then
-                  echo "tmp/archive_info.json does not exist"
-                  exit 1
-                fi
+      #           if [ ! -f $TMP_DIR/tmp/archive_info.json ]; then
+      #             echo "tmp/archive_info.json does not exist"
+      #             exit 1
+      #           fi
   remote_uncompressed_test:
     envs:
       - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_remote_uncompressed_test
@@ -326,17 +326,17 @@ workflows:
             - is_direct_url: true
             # - extract_to_relative_path: true
             - allow_fallback: "false"
-      - script:
-          title: Test if archive uncompressed
-          inputs:
-            - content: |
-                # !/bin/env bash
-                set -ex
+      # - script:
+      #     title: Test if archive uncompressed
+      #     inputs:
+      #       - content: |
+      #           # !/bin/env bash
+      #           set -ex
 
-                if [ ! -f $TMP_DIR/tmp/archive_info.json ]; then
-                  echo "tmp/archive_info.json does not exist"
-                  exit 1
-                fi
+      #           if [ ! -f $TMP_DIR/tmp/archive_info.json ]; then
+      #             echo "tmp/archive_info.json does not exist"
+      #             exit 1
+      #           fi
   remote_uncompressed_full_cycle_test:
     envs:
       - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_remote_uncompressed_full_cycle_test
