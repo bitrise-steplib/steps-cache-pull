@@ -12,8 +12,8 @@ import (
 )
 
 // uncompressArchive invokes tar tool against a local archive file.
-func uncompressArchive(pth string, relative bool) error {
-	cmd := command.New("tar", processArgs(relative), pth)
+func uncompressArchive(pth string, relative, compressed bool) error {
+	cmd := command.New("tar", processArgs(relative, compressed), pth)
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		errMsg := err.Error()
@@ -26,8 +26,8 @@ func uncompressArchive(pth string, relative bool) error {
 }
 
 // extractCacheArchive invokes tar tool by piping the archive to the command's input.
-func extractCacheArchive(r io.Reader, relative bool) error {
-	cmd := command.New("tar", processArgs(relative), "-")
+func extractCacheArchive(r io.Reader, relative, compressed bool) error {
+	cmd := command.New("tar", processArgs(relative, compressed), "-")
 	cmd.SetStdin(r)
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		errMsg := err.Error()
@@ -43,22 +43,41 @@ func extractCacheArchive(r io.Reader, relative bool) error {
 	return nil
 }
 
-func processArgs(relative bool) string {
-	var args string
-	if relative {
-		args = "-xf"
-	} else {
-		args = "-xPf"
+func processArgs(relative, compressed bool) string {
+	/*
+		GNU  tar options
+
+		-f "-" : reads the archive from standard input
+		https://www.gnu.org/software/tar/manual/html_node/Device.html#SEC155
+
+		-x : extract files from an archive
+		https://www.gnu.org/software/tar/manual/html_node/extract.html#SEC25
+
+		-P : Don't strip an initial `/' from member names
+		https://www.gnu.org/software/tar/manual/html_node/absolute.html#SEC120
+
+		-z : tells tar to read or write archives through gzip
+		https://www.gnu.org/software/tar/manual/html_node/gzip.html#SEC135
+	*/
+
+	args := "-x"
+	if !relative {
+		args += "P"
 	}
+	if compressed {
+		args += "z"
+	}
+	args += "f"
 	return args
 }
 
 // readFirstEntry reads the first entry from a given archive.
-func readFirstEntry(r io.Reader) (*tar.Reader, *tar.Header, error) {
+func readFirstEntry(r io.Reader) (*tar.Reader, *tar.Header, bool, error) {
 	restoreReader := NewRestoreReader(r)
 
 	var archive io.Reader
 	var err error
+	compressed := true
 
 	log.Debugf("attempt to read archive as .gzip")
 
@@ -70,17 +89,18 @@ func readFirstEntry(r io.Reader) (*tar.Reader, *tar.Header, error) {
 
 		restoreReader.Restore()
 		archive = restoreReader
+		compressed = false
 	}
 
 	tr := tar.NewReader(archive)
 	hdr, err := tr.Next()
 	if err == io.EOF {
 		// no entries in the archive
-		return nil, nil, nil
+		return nil, nil, compressed, nil
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, compressed, err
 	}
 
-	return tr, hdr, nil
+	return tr, hdr, compressed, nil
 }

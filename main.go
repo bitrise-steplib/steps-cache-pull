@@ -28,8 +28,8 @@ type Config struct {
 	IsDirectURL           bool   `env:"is_direct_url,opt[true,false]"`
 	ExtractToRelativePath bool   `env:"extract_to_relative_path,opt[true,false]"`
 
-	StackID               string `env:"BITRISEIO_STACK_ID"`
-	BuildSlug             string `env:"BITRISE_BUILD_SLUG"`
+	StackID   string `env:"BITRISEIO_STACK_ID"`
+	BuildSlug string `env:"BITRISE_BUILD_SLUG"`
 }
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
@@ -218,18 +218,18 @@ func main() {
 
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
+	r, hdr, compressed, err := readFirstEntry(cacheRecorderReader)
+	if err != nil {
+		failf("Failed to get first archive entry: %s", err)
+	}
+
+	cacheRecorderReader.Restore()
+
 	currentStackID := strings.TrimSpace(conf.StackID)
 	if len(currentStackID) > 0 {
 		fmt.Println()
 		log.Infof("Checking archive and current stacks")
 		log.Printf("current stack id: %s", currentStackID)
-
-		r, hdr, err := readFirstEntry(cacheRecorderReader)
-		if err != nil {
-			failf("Failed to get first archive entry: %s", err)
-		}
-
-		cacheRecorderReader.Restore()
 
 		if filepath.Base(hdr.Name) == "archive_info.json" {
 			b, err := ioutil.ReadAll(r)
@@ -256,7 +256,7 @@ func main() {
 	fmt.Println()
 	log.Infof("Extracting cache archive")
 
-	if err := extractCacheArchive(cacheRecorderReader, conf.ExtractToRelativePath); err != nil {
+	if err := extractCacheArchive(cacheRecorderReader, conf.ExtractToRelativePath, compressed); err != nil {
 		if !conf.AllowFallback {
 			failf("Failed to uncompress cache archive stream: %s", err)
 		}
@@ -274,7 +274,7 @@ func main() {
 			failf("Fallback failed, unable to download cache archive: %s", err)
 		}
 
-		if err := uncompressArchive(pth, conf.ExtractToRelativePath); err != nil {
+		if err := uncompressArchive(pth, conf.ExtractToRelativePath, compressed); err != nil {
 			failf("Fallback failed, unable to uncompress cache archive file: %s", err)
 		}
 	} else {
