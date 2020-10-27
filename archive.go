@@ -67,6 +67,7 @@ func processArgs(relative, compressed bool) string {
 		https://www.gnu.org/software/tar/manual/html_node/gzip.html#SEC135
 
 		BSD tar differences
+
 		-z : In	extract	or list	modes, this option is ignored.
 		Note that this tar implementation recognizes compress compression automatically when reading archives
 		https://www.freebsd.org/cgi/man.cgi?query=bsdtar&sektion=1&manpath=freebsd-release-ports

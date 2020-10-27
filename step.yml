@@ -61,6 +61,13 @@ inputs:
       summary: Working directory path
       description: |-
         Working directory path - should be an absolute path.
+  - cache_api_url: $BITRISE_CACHE_API_URL
+    opts:
+      title: "Cache API URL"
+      summary: "Cache API URL"
+      description: |-
+        Cache API URL
+      is_dont_change_value: true
   - is_debug_mode: "false"
     opts:
       title: "Debug mode?"
@@ -71,19 +78,13 @@ inputs:
       value_options:
       - "true"
       - "false"
-  - cache_api_url: $BITRISE_CACHE_API_URL
-    opts:
-      title: "Cache API URL"
-      summary: "Cache API URL"
-      description: |-
-        Cache API URL
-      is_dont_change_value: true
   - is_direct_url: "false"
     opts:
       category: Debug
       title: Sidestep Cache API?
-      is_required: true
       description: Is the provided URL direct download address?
+      is_required: true
+      is_dont_change_value: true
       value_options:
       - "true"
       - "false"
@@ -91,8 +92,9 @@ inputs:
     opts:
       category: Debug
       title: Extract to relative path?
-      is_required: true
       description: Should we extract the archive content under current working directory?
+      is_required: true
+      is_dont_change_value: true
       value_options:
       - "true"
       - "false"
@@ -101,6 +103,7 @@ inputs:
       category: Debug
       title: "Allow fallback cache extraction?"
       is_required: true
+      is_dont_change_value: true
       value_options:
       - "true"
       - "false"
