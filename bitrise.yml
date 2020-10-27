@@ -13,7 +13,7 @@ workflows:
     - audit-this-step
     - go-tests
     - remote_cache_test
-    # - remote_uncompressed_full_cycle_test
+    - remote_uncompressed_full_cycle_test
     - local_tar_test
     - local_gzip_test
     - local_stack_change_test
@@ -273,7 +273,7 @@ workflows:
             - is_debug_mode: true
             - cache_api_url: $BITRISE_CACHE_API_URL
             - is_direct_url: true
-            # - extract_to_relative_path: true
+            - extract_to_relative_path: true
             - allow_fallback: "false"
       - script:
           title: Test if archive uncompressed
@@ -282,10 +282,11 @@ workflows:
                 # !/bin/env bash
                 set -ex
 
-                if [ ! -f /tmp/archive_info.json ]; then
+                if [ ! -f $TMP_DIR/tmp/archive_info.json ]; then
                   echo "tmp/archive_info.json does not exist"
                   exit 1
                 fi
+
   remote_uncompressed_test:
     envs:
       - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_remote_uncompressed_test
@@ -324,7 +325,7 @@ workflows:
             - is_debug_mode: true
             - cache_api_url: $BITRISE_CACHE_API_URL
             - is_direct_url: true
-            # - extract_to_relative_path: true
+            - extract_to_relative_path: true
             - allow_fallback: "false"
       - script:
           title: Test if archive uncompressed
@@ -333,10 +334,11 @@ workflows:
                 # !/bin/env bash
                 set -ex
 
-                if [ ! -f /tmp/archive_info.json ]; then
+                if [ ! -f $TMP_DIR/tmp/archive_info.json ]; then
                   echo "tmp/archive_info.json does not exist"
                   exit 1
                 fi
+
   remote_uncompressed_full_cycle_test:
     envs:
       - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_remote_uncompressed_full_cycle_test
