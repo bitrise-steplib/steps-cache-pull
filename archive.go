@@ -30,7 +30,7 @@ func uncompressArchive(pth string, relative, compressed bool) error {
 
 // extractCacheArchive invokes tar tool by piping the archive to the command's input.
 func extractCacheArchive(r io.Reader, relative, compressed bool) error {
-	cmd := command.New("tar", processArgs(relative, compressed), "-")
+	cmd := command.New("tar", processArgs(relative, compressed), "/dev/stdin")
 	cmd.SetStdin(r)
 
 	printableCmd := fmt.Sprintf("curl <CACHE_URL> | %s", cmd.PrintableCommandArgs())
@@ -65,6 +65,11 @@ func processArgs(relative, compressed bool) string {
 
 		-z : tells tar to read or write archives through gzip
 		https://www.gnu.org/software/tar/manual/html_node/gzip.html#SEC135
+
+		BSD tar differences
+		-z : In	extract	or list	modes, this option is ignored.
+		Note that this tar implementation recognizes compress compression automatically when reading archives
+		https://www.freebsd.org/cgi/man.cgi?query=bsdtar&sektion=1&manpath=freebsd-release-ports
 	*/
 
 	args := "-x"
