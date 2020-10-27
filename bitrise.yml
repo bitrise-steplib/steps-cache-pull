@@ -257,7 +257,8 @@ workflows:
             - content: |
                 #!/bin/bash
                 set -ex
-                if [[ "$BITRISEIO_STACK_ID" == *"linux"* ]]
+                shopt -s nocasematch
+                if [[ `uname -s` == "linux" ]]
                 then
                   ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/linux-comp.tar.gz"
                 else
@@ -309,7 +310,8 @@ workflows:
             - content: |
                 #!/bin/bash
                 set -ex
-                if [[ "$BITRISEIO_STACK_ID" == *"linux"* ]]
+                shopt -s nocasematch
+                if [[ `uname -s` == "linux" ]]
                 then
                   ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/linux.tar.gz"
                 else
