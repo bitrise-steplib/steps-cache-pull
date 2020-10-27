@@ -16,8 +16,8 @@ workflows:
     - local_tar_test
     - local_gzip_test
     - local_stack_change_test
-    - remote_compressed_test
     - remote_uncompressed_test
+    - remote_compressed_test
   
   test:
     before_run:
