@@ -30,7 +30,7 @@ func uncompressArchive(pth string, relative, compressed bool) error {
 
 // extractCacheArchive invokes tar tool by piping the archive to the command's input.
 func extractCacheArchive(r io.Reader, relative, compressed bool) error {
-	cmd := command.New("tar", processArgs(relative, compressed), "/dev/stdin")
+	cmd := command.New("tar", processArgs(relative, compressed), "-")
 	cmd.SetStdin(r)
 
 	printableCmd := fmt.Sprintf("curl <CACHE_URL> | %s", cmd.PrintableCommandArgs())
