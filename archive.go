@@ -14,6 +14,9 @@ import (
 // uncompressArchive invokes tar tool against a local archive file.
 func uncompressArchive(pth string, relative, compressed bool) error {
 	cmd := command.New("tar", processArgs(relative, compressed), pth)
+
+	log.Donef(cmd.PrintableCommandArgs())
+
 	out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 	if err != nil {
 		errMsg := err.Error()
@@ -29,12 +32,16 @@ func uncompressArchive(pth string, relative, compressed bool) error {
 func extractCacheArchive(r io.Reader, relative, compressed bool) error {
 	cmd := command.New("tar", processArgs(relative, compressed), "-")
 	cmd.SetStdin(r)
+
+	printableCmd := fmt.Sprintf("curl <CACHE_URL> | %s", cmd.PrintableCommandArgs())
+	log.Donef(printableCmd)
+
 	if out, err := cmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
 		errMsg := err.Error()
 		if errorutil.IsExitStatusError(err) {
 			errMsg = out
 		}
-		return fmt.Errorf("%s failed: %s", cmd.PrintableCommandArgs(), errMsg)
+		return fmt.Errorf("%s failed: %s", printableCmd, errMsg)
 	}
 
 	if rc, ok := r.(io.ReadCloser); ok {
