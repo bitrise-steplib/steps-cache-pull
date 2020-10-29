@@ -25,7 +25,6 @@ type Config struct {
 	CacheAPIURL           string `env:"cache_api_url"`
 	DebugMode             bool   `env:"is_debug_mode,opt[true,false]"`
 	AllowFallback         bool   `env:"allow_fallback,opt[true,false]"`
-	IsDirectURL           bool   `env:"is_direct_url,opt[true,false]"`
 	ExtractToRelativePath bool   `env:"extract_to_relative_path,opt[true,false]"`
 
 	StackID   string `env:"BITRISEIO_STACK_ID"`
@@ -165,6 +164,10 @@ func failf(format string, args ...interface{}) {
 	os.Exit(1)
 }
 
+func isBitriseCacheAPIURL(url string) bool {
+	return url == os.Getenv("BITRISE_CACHE_API_URL")
+}
+
 func main() {
 	var conf Config
 	if err := stepconf.Parse(&conf); err != nil {
@@ -201,7 +204,7 @@ func main() {
 		log.Infof("Downloading remote cache archive")
 
 		var err error
-		if !conf.IsDirectURL {
+		if isBitriseCacheAPIURL(conf.CacheAPIURL) {
 			cacheURI, err = getCacheDownloadURL(conf.CacheAPIURL)
 			if err != nil {
 				failf("Failed to get cache download url: %s", err)
