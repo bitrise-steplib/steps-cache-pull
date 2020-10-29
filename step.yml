@@ -78,16 +78,6 @@ inputs:
       value_options:
       - "true"
       - "false"
-  - is_direct_url: "false"
-    opts:
-      category: Debug
-      title: Sidestep Cache API?
-      description: Is the provided URL direct download address?
-      is_required: true
-      is_dont_change_value: true
-      value_options:
-      - "true"
-      - "false"
   - extract_to_relative_path: "false"
     opts:
       category: Debug

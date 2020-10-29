@@ -61,14 +61,14 @@ workflows:
             echo '{ "stack_id": "Wrong Stack ID" }' > "/tmp/archive_info.json"
             tar -cvf "archive.tar.gz" "/tmp/archive_info.json" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
-            envman add --key "BITRISE_CACHE_API_URL" --value "file://$TMP_DIR/archive.tar.gz"
+            envman add --key "CACHE_ARCHIVE_URL" --value "file://$TMP_DIR/archive.tar.gz"
     - path::./:
         title: Step Test
         run_if: true
         is_skippable: false
         inputs:
-        - is_debug_mode: true 
-        - cache_api_url: $BITRISE_CACHE_API_URL
+        - is_debug_mode: true
+        - cache_api_url: $CACHE_ARCHIVE_URL
         - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
@@ -110,14 +110,14 @@ workflows:
             echo { \"stack_id\": \"${BITRISEIO_STACK_ID}\" } > $TMP_DIR/archive_info.json
             tar -cvf "archive.tar.gz" "archive_info.json" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
-            envman add --key "BITRISE_CACHE_API_URL" --value "file://$TMP_DIR/archive.tar.gz"
+            envman add --key "CACHE_ARCHIVE_URL" --value "file://$TMP_DIR/archive.tar.gz"
     - path::./:
         title: Step Test
         run_if: true
         is_skippable: false
         inputs:
-        - is_debug_mode: true 
-        - cache_api_url: $BITRISE_CACHE_API_URL
+        - is_debug_mode: true
+        - cache_api_url: $CACHE_ARCHIVE_URL
         - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
@@ -159,14 +159,14 @@ workflows:
             echo { \"stack_id\": \"${BITRISEIO_STACK_ID}\" } > $TMP_DIR/archive_info.json
             tar -cvf "archive.tar" "archive_info.json" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
-            envman add --key "BITRISE_CACHE_API_URL" --value "file://$TMP_DIR/archive.tar"
+            envman add --key "CACHE_ARCHIVE_URL" --value "file://$TMP_DIR/archive.tar"
     - path::./:
         title: Step Test
         run_if: true
         is_skippable: false
         inputs:
         - is_debug_mode: true
-        - cache_api_url: $BITRISE_CACHE_API_URL
+        - cache_api_url: $CACHE_ARCHIVE_URL
         - allow_fallback: "false"
     - script:
         title: Test if archive uncompressed
@@ -260,19 +260,18 @@ workflows:
                 shopt -s nocasematch
                 if [[ `uname -s` == "linux" ]]
                 then
-                  ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/linux-comp.tar.gz"
+                  CACHE_ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/linux-comp.tar.gz"
                 else
-                  ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/macos-comp.tar.gz"
+                  CACHE_ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/macos-comp.tar.gz"
                 fi
-                envman add --key "BITRISE_CACHE_API_URL" --value $ARCHIVE_URL
+                envman add --key "CACHE_ARCHIVE_URL" --value $CACHE_ARCHIVE_URL
       - path::./:
           title: Step Test
           run_if: true
           is_skippable: false
           inputs:
             - is_debug_mode: true
-            - cache_api_url: $BITRISE_CACHE_API_URL
-            - is_direct_url: true
+            - cache_api_url: $CACHE_ARCHIVE_URL
             - extract_to_relative_path: true
             - allow_fallback: "false"
       - script:
@@ -313,19 +312,18 @@ workflows:
                 shopt -s nocasematch
                 if [[ `uname -s` == "linux" ]]
                 then
-                  ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/linux.tar.gz"
+                  CACHE_ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/linux.tar.gz"
                 else
-                  ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/macos.tar.gz"
+                  CACHE_ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/macos.tar.gz"
                 fi
-                envman add --key "BITRISE_CACHE_API_URL" --value $ARCHIVE_URL
+                envman add --key "CACHE_ARCHIVE_URL" --value $CACHE_ARCHIVE_URL
       - path::./:
           title: Step Test
           run_if: true
           is_skippable: false
           inputs:
             - is_debug_mode: true
-            - cache_api_url: $BITRISE_CACHE_API_URL
-            - is_direct_url: true
+            - cache_api_url: $CACHE_ARCHIVE_URL
             - extract_to_relative_path: true
             - allow_fallback: "false"
       - script:
