@@ -70,10 +70,8 @@ inputs:
       is_dont_change_value: true
   - is_debug_mode: "false"
     opts:
-      title: "Debug mode?"
-      summary: "If debug mode is enabled, the step will print verbose logs"
-      description: |-
-        If debug mode is enabled, the step will print verbose logs
+      title: "Enable verbose logging"
+      summary: "If enabled, the step will print verbose logs."
       is_required: true
       value_options:
       - "true"
@@ -82,7 +80,7 @@ inputs:
     opts:
       category: Debug
       title: Extract to relative path?
-      description: Should we extract the archive content under current working directory?
+      summary: Should we extract the archive content under current working directory?
       is_required: true
       is_dont_change_value: true
       value_options:
