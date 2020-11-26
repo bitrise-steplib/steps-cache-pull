@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,10 @@ import (
 
 const (
 	stepID = "cache-pull"
+)
+
+const (
+	cachePullEndTimePath = "/tmp/cache_pull_end_time"
 )
 
 // Config stores the step inputs.
@@ -168,6 +173,23 @@ func isBitriseCacheAPIURL(url string) bool {
 	return url == os.Getenv("BITRISE_CACHE_API_URL")
 }
 
+func writeCachePullTimestamp() error {
+	f, err := os.Create(cachePullEndTimePath)
+
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	_, err = f.WriteString(strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	var conf Config
 	if err := stepconf.Parse(&conf); err != nil {
@@ -287,6 +309,11 @@ func main() {
 		}
 		log.Debugf("Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 		log.RInfof(stepID, "cache_archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
+	}
+
+	err = writeCachePullTimestamp()
+	if err != nil {
+		failf("Couldn't save cache pull timestamp: %s", err)
 	}
 
 	fmt.Println()
