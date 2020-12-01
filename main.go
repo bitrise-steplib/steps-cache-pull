@@ -271,8 +271,8 @@ func main() {
 			if archiveStackID != currentStackID {
 				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackID, currentStackID)
 				log.Warnf("Skipping cache pull, because of the stack has changed")
-				
-				if err = writeCachePullTimestamp(); err != nil {
+
+				if err := writeCachePullTimestamp(); err != nil {
 					failf("Couldn't save cache pull timestamp: %s", err)
 				}
 
@@ -316,7 +316,7 @@ func main() {
 		log.RInfof(stepID, "cache_archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 	}
 
-	if err = writeCachePullTimestamp(); err != nil {
+	if err := writeCachePullTimestamp(); err != nil {
 		failf("Couldn't save cache pull timestamp: %s", err)
 	}
 
