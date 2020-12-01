@@ -187,10 +187,7 @@ func writeCachePullTimestamp() (err error) {
 
 	_, err = f.WriteString(strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
 
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func main() {
@@ -274,6 +271,11 @@ func main() {
 			if archiveStackID != currentStackID {
 				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackID, currentStackID)
 				log.Warnf("Skipping cache pull, because of the stack has changed")
+				
+				if err = writeCachePullTimestamp(); err != nil {
+					failf("Couldn't save cache pull timestamp: %s", err)
+				}
+
 				os.Exit(0)
 			}
 		} else {
@@ -314,8 +316,7 @@ func main() {
 		log.RInfof(stepID, "cache_archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 	}
 
-	err = writeCachePullTimestamp()
-	if err != nil {
+	if err = writeCachePullTimestamp(); err != nil {
 		failf("Couldn't save cache pull timestamp: %s", err)
 	}
 
