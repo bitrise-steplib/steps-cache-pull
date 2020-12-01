@@ -173,14 +173,17 @@ func isBitriseCacheAPIURL(url string) bool {
 	return url == os.Getenv("BITRISE_CACHE_API_URL")
 }
 
-func writeCachePullTimestamp() error {
+func writeCachePullTimestamp() (err error) {
 	f, err := os.Create(cachePullEndTimePath)
-
 	if err != nil {
 		return err
 	}
 
-	defer f.Close()
+	defer func() {
+		if fErr := f.Close(); fErr != nil {
+			err = fErr
+		}
+	}()
 
 	_, err = f.WriteString(strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
 
