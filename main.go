@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,10 @@ import (
 
 const (
 	stepID = "cache-pull"
+)
+
+const (
+	cachePullEndTimePath = "/tmp/cache_pull_end_time"
 )
 
 // Config stores the step inputs.
@@ -168,6 +173,23 @@ func isBitriseCacheAPIURL(url string) bool {
 	return url == os.Getenv("BITRISE_CACHE_API_URL")
 }
 
+func writeCachePullTimestamp() (err error) {
+	f, err := os.Create(cachePullEndTimePath)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if fErr := f.Close(); fErr != nil {
+			err = fErr
+		}
+	}()
+
+	_, err = f.WriteString(strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
+
+	return err
+}
+
 func main() {
 	var conf Config
 	if err := stepconf.Parse(&conf); err != nil {
@@ -249,6 +271,11 @@ func main() {
 			if archiveStackID != currentStackID {
 				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackID, currentStackID)
 				log.Warnf("Skipping cache pull, because of the stack has changed")
+
+				if err := writeCachePullTimestamp(); err != nil {
+					failf("Couldn't save cache pull timestamp: %s", err)
+				}
+
 				os.Exit(0)
 			}
 		} else {
@@ -287,6 +314,10 @@ func main() {
 		}
 		log.Debugf("Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 		log.RInfof(stepID, "cache_archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
+	}
+
+	if err := writeCachePullTimestamp(); err != nil {
+		failf("Couldn't save cache pull timestamp: %s", err)
 	}
 
 	fmt.Println()
