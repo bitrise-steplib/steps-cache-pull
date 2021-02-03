@@ -63,9 +63,14 @@ func Test_isSameStack(t *testing.T) {
 			false,
 		},
 		{
-			"Going from iOS to iOS",
+			"Going from iOS to iOS same stack",
 			args{archiveStackID: "osx-xcode-12.3.x", currentStackID: "osx-xcode-12.3.x"},
 			true,
+		},
+		{
+			"Going from iOS to iOS different stack",
+			args{archiveStackID: "osx-xcode-12.3.x", currentStackID: "osx-xcode-12.4.x"},
+			false,
 		},
 		{
 			"Going from Ubuntu to Ubuntu LTS",

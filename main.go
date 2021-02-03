@@ -328,9 +328,8 @@ func main() {
 
 func isSameStack(archiveStackID string, currentStackID string) bool {
 	// TODO This check is a temporary solution to support GEN2 VMs having different ids for same stack types
-	if r, err := regexp.Compile("^(.+)-gen2.*$"); err == nil {
-		currentStackID = r.ReplaceAllString(currentStackID, "$1")
-		archiveStackID = r.ReplaceAllString(archiveStackID, "$1")
-	}
+	r := regexp.MustCompile("^(.+)-gen2.*$")
+	currentStackID = r.ReplaceAllString(currentStackID, "$1")
+	archiveStackID = r.ReplaceAllString(archiveStackID, "$1")
 	return archiveStackID == currentStackID
 }
