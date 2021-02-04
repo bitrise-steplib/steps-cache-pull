@@ -13,6 +13,16 @@ func Test_isSameStack(t *testing.T) {
 		want bool
 	}{
 		{
+			"Going from empty to iOS",
+			args{archiveStackID: "", currentStackID: "osx-xcode-12.3.x"},
+			false,
+		},
+		{
+			"Going from iOS to empty",
+			args{archiveStackID: "osx-xcode-12.3.x", currentStackID: ""},
+			false,
+		},
+		{
 			"Going from Gen2 to Gen1",
 			args{archiveStackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001", currentStackID: "osx-xcode-12.3.x"},
 			true,
