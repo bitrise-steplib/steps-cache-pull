@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -268,7 +269,7 @@ func main() {
 			}
 			log.Printf("archive stack id: %s", archiveStackID)
 
-			if archiveStackID != currentStackID {
+			if !isSameStack(archiveStackID, currentStackID) {
 				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackID, currentStackID)
 				log.Warnf("Skipping cache pull, because of the stack has changed")
 
@@ -323,4 +324,12 @@ func main() {
 	fmt.Println()
 	log.Donef("Done")
 	log.Printf("Took: " + time.Since(startTime).String())
+}
+
+func isSameStack(archiveStackID string, currentStackID string) bool {
+	// TODO This check is a temporary solution to support GEN2 VMs having different ids for same stack types
+	r := regexp.MustCompile("^(.+)-gen2.*$")
+	currentStackID = r.ReplaceAllString(currentStackID, "$1")
+	archiveStackID = r.ReplaceAllString(archiveStackID, "$1")
+	return archiveStackID == currentStackID
 }
