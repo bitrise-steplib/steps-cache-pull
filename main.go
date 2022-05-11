@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -198,6 +199,8 @@ func main() {
 	}
 	stepconf.Print(conf)
 	log.SetEnableDebugLog(conf.DebugMode)
+
+	log.Printf("Arch: %s", runtime.GOARCH)
 
 	if conf.CacheAPIURL == "" {
 		log.Warnf("No Cache API URL specified, there's no cache to use, exiting.")
