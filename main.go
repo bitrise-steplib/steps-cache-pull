@@ -38,6 +38,15 @@ type Config struct {
 	BuildSlug string `env:"BITRISE_BUILD_SLUG"`
 }
 
+type archiveInfo struct {
+	StackID     string `json:"stack_id,omitempty"`
+	Arhitecture string `json:"architecture,omitempty"`
+}
+
+func (a archiveInfo) String() string {
+	return fmt.Sprintf("%s (%s)", a.StackID, a.Arhitecture)
+}
+
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
 // If the URI points to a local file it returns the local paths.
 func downloadCacheArchive(url string, buildSlug string) (string, error) {
@@ -153,16 +162,13 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	return respModel.DownloadURL, nil
 }
 
-// parseStackID reads the stack id from the given json bytes.
-func parseStackID(b []byte) (string, error) {
-	type ArchiveInfo struct {
-		StackID string `json:"stack_id,omitempty"`
+// parseArchiveInfo reads the stack id and architecture from the given json bytes.
+func parseArchiveInfo(b []byte) (archiveInfo, error) {
+	var info archiveInfo
+	if err := json.Unmarshal(b, &info); err != nil {
+		return archiveInfo{}, err
 	}
-	var archiveInfo ArchiveInfo
-	if err := json.Unmarshal(b, &archiveInfo); err != nil {
-		return "", err
-	}
-	return archiveInfo.StackID, nil
+	return info, nil
 }
 
 // failf prints an error and terminates the step.
@@ -200,7 +206,8 @@ func main() {
 	stepconf.Print(conf)
 	log.SetEnableDebugLog(conf.DebugMode)
 
-	log.Printf("Arch: %s", runtime.GOARCH)
+	var currentArchitecture = runtime.GOARCH
+	log.Printf("- architecture: %s", currentArchitecture)
 
 	if conf.CacheAPIURL == "" {
 		log.Warnf("No Cache API URL specified, there's no cache to use, exiting.")
@@ -266,15 +273,20 @@ func main() {
 				failf("Failed to read first archive entry: %s", err)
 			}
 
-			archiveStackID, err := parseStackID(b)
+			archiveStackInfo, err := parseArchiveInfo(b)
 			if err != nil {
 				failf("Failed to parse first archive entry: %s", err)
 			}
-			log.Printf("archive stack id: %s", archiveStackID)
+			log.Printf("archive stack id: %s", archiveStackInfo)
 
-			if !isSameStack(archiveStackID, currentStackID) {
-				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackID, currentStackID)
-				log.Warnf("Skipping cache pull, because of the stack has changed")
+			currentStackInfo := archiveInfo{
+				StackID:     currentStackID,
+				Arhitecture: currentArchitecture,
+			}
+
+			if !isSameStack(archiveStackInfo, currentStackInfo) {
+				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackInfo, currentStackInfo)
+				log.Warnf("Skipping cache pull, as the stack has changed")
 
 				if err := writeCachePullTimestamp(); err != nil {
 					failf("Couldn't save cache pull timestamp: %s", err)
@@ -329,10 +341,11 @@ func main() {
 	log.Printf("Took: " + time.Since(startTime).String())
 }
 
-func isSameStack(archiveStackID string, currentStackID string) bool {
+func isSameStack(archiveStackInfo archiveInfo, currentStackInfo archiveInfo) bool {
 	// TODO This check is a temporary solution to support GEN2 VMs having different ids for same stack types
 	r := regexp.MustCompile("^(.+)-gen2.*$")
-	currentStackID = r.ReplaceAllString(currentStackID, "$1")
-	archiveStackID = r.ReplaceAllString(archiveStackID, "$1")
-	return archiveStackID == currentStackID
+	currentStackInfo.StackID = r.ReplaceAllString(currentStackInfo.StackID, "$1")
+	archiveStackInfo.StackID = r.ReplaceAllString(archiveStackInfo.StackID, "$1")
+
+	return archiveStackInfo == currentStackInfo
 }

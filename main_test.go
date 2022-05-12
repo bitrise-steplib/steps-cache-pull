@@ -3,104 +3,233 @@ package main
 import "testing"
 
 func Test_isSameStack(t *testing.T) {
-	type args struct {
-		archiveStackID string
-		currentStackID string
-	}
 	tests := []struct {
-		name string
-		args args
-		want bool
+		name         string
+		archiveStack archiveInfo
+		currentStack archiveInfo
+		want         bool
 	}{
 		{
-			"Going from empty to iOS",
-			args{archiveStackID: "", currentStackID: "osx-xcode-12.3.x"},
-			false,
+			name: "Going from empty to iOS",
+			archiveStack: archiveInfo{
+				StackID: "",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			want: false,
 		},
 		{
-			"Going from iOS to empty",
-			args{archiveStackID: "osx-xcode-12.3.x", currentStackID: ""},
-			false,
+			name: "Going from iOS to empty",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			currentStack: archiveInfo{
+				StackID: "",
+			},
+			want: false,
 		},
 		{
-			"Going from Gen2 to Gen1",
-			args{archiveStackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001", currentStackID: "osx-xcode-12.3.x"},
-			true,
+			name: "Going from Gen2 to Gen1",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			want: true,
 		},
 		{
-			"Going from Gen2 to Gen2 same machine",
-			args{archiveStackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001", currentStackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001"},
-			true,
+			name: "Going from Gen2 to Gen2 same machine",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			want: true,
 		},
 		{
-			"Going from Gen2 to Gen2 different stack",
-			args{archiveStackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001", currentStackID: "osx-xcode-12.4.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001"},
-			false,
+			name: "Going from Gen2 to Gen2 different stack",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.4.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			want: false,
 		},
 		{
-			"Going from Gen2 to Gen2 different machine",
-			args{archiveStackID: "osx-xcode-12.3.x-gen2-mmg4-4c-20gb-300gb-atl01-ded001", currentStackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001"},
-			true,
+			name: "Going from Gen2 to Gen2 different machine",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x-gen2-mmg4-4c-20gb-300gb-atl01-ded001",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			want: true,
 		},
 		{
-			"Going from Gen1 to Gen2",
-			args{archiveStackID: "osx-xcode-12.3.x", currentStackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001"},
-			true,
+			name: "Going from Gen1 to Gen2",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			want: true,
 		},
 		{
-			"Going from Gen1 to Gen2 different stack",
-			args{archiveStackID: "osx-xcode-12.4.x", currentStackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001"},
-			false,
+			name: "Going from Gen1 to Gen2 different stack",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.4.x",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			want: false,
 		},
 		{
-			"Going from Gen2 to Gen1 different stack",
-			args{archiveStackID: "osx-xcode-12.4.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001", currentStackID: "osx-xcode-12.3.x"},
-			false,
+			name: "Going from Gen2 to Gen1 different stack",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.4.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			want: false,
 		},
 		{
-			"Going from Ubuntu to iOS",
-			args{archiveStackID: "linux-docker-android", currentStackID: "osx-xcode-12.3.x"},
-			false,
+			name: "Going from Ubuntu to iOS",
+			archiveStack: archiveInfo{
+				StackID: "linux-docker-android",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			want: false,
 		},
 		{
-			"Going from Ubuntu to Ubuntu",
-			args{archiveStackID: "linux-docker-android", currentStackID: "linux-docker-android"},
-			true,
+			name: "Going from Ubuntu to Ubuntu",
+			archiveStack: archiveInfo{
+				StackID: "linux-docker-android",
+			},
+			currentStack: archiveInfo{
+				StackID: "linux-docker-android",
+			},
+			want: true,
 		},
 		{
-			"Going from iOS to Ubuntu",
-			args{archiveStackID: "osx-xcode-12.3.x", currentStackID: "linux-docker-android"},
-			false,
+			name: "Going from iOS to Ubuntu",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			currentStack: archiveInfo{
+				StackID: "linux-docker-android",
+			},
+			want: false,
 		},
 		{
-			"Going from iOS to iOS same stack",
-			args{archiveStackID: "osx-xcode-12.3.x", currentStackID: "osx-xcode-12.3.x"},
-			true,
+			name: "Going from iOS to iOS same stack",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			want: true,
 		},
 		{
-			"Going from iOS to iOS different stack",
-			args{archiveStackID: "osx-xcode-12.3.x", currentStackID: "osx-xcode-12.4.x"},
-			false,
+			name: "Going from iOS to iOS different stack",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.4.x",
+			},
+			want: false,
 		},
 		{
-			"Going from Ubuntu to Ubuntu LTS",
-			args{archiveStackID: "linux-docker-android", currentStackID: "linux-docker-android-lts"},
-			false,
+			name: "Going from Ubuntu to Ubuntu LTS",
+			archiveStack: archiveInfo{
+				StackID: "linux-docker-android",
+			},
+			currentStack: archiveInfo{
+				StackID: "linux-docker-android-lts",
+			},
+			want: false,
 		},
 		{
-			"Going from Ubuntu LTS to Ubuntu",
-			args{archiveStackID: "linux-docker-android-lts", currentStackID: "linux-docker-android"},
-			false,
+			name: "Going from Ubuntu LTS to Ubuntu",
+			archiveStack: archiveInfo{
+				StackID: "linux-docker-android-lts",
+			},
+			currentStack: archiveInfo{
+				StackID: "linux-docker-android",
+			},
+			want: false,
 		},
 		{
-			"Going from Ubuntu to Gen2 iOS",
-			args{archiveStackID: "linux-docker-android", currentStackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001"},
-			false,
+			name: "Going from Ubuntu to Gen2 iOS",
+			archiveStack: archiveInfo{
+				StackID: "linux-docker-android",
+			},
+			currentStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x-gen2-mmg4-12c-60gb-300gb-atl01-ded001",
+			},
+			want: false,
+		},
+		{
+			name: "Going from iOS to iOS, architecture introduced",
+			archiveStack: archiveInfo{
+				StackID: "osx-xcode-12.3.x",
+			},
+			currentStack: archiveInfo{
+				StackID:     "osx-xcode-12.3.x",
+				Arhitecture: "amd64",
+			},
+			want: false,
+		},
+		{
+			name: "Going from iOS to iOS, same id, same arch",
+			archiveStack: archiveInfo{
+				StackID:     "osx-xcode-12.3.x",
+				Arhitecture: "amd64",
+			},
+			currentStack: archiveInfo{
+				StackID:     "osx-xcode-12.3.x",
+				Arhitecture: "amd64",
+			},
+			want: true,
+		},
+		{
+			name: "Going from iOS to iOS, same id, different arch",
+			archiveStack: archiveInfo{
+				StackID:     "osx-xcode-12.3.x",
+				Arhitecture: "amd64",
+			},
+			currentStack: archiveInfo{
+				StackID:     "osx-xcode-12.3.x",
+				Arhitecture: "arm64",
+			},
+			want: false,
+		},
+		{
+			name: "Going from iOS to iOS, different id, same arch",
+			archiveStack: archiveInfo{
+				StackID:     "osx-xcode-12.3.x",
+				Arhitecture: "arm64",
+			},
+			currentStack: archiveInfo{
+				StackID:     "osx-xcode-12.4.x",
+				Arhitecture: "arm64",
+			},
+			want: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := isSameStack(tt.args.archiveStackID, tt.args.currentStackID); got != tt.want {
+			if got := isSameStack(tt.archiveStack, tt.currentStack); got != tt.want {
 				t.Errorf("isSameStack() = %v, want %v", got, tt.want)
 			}
 		})
