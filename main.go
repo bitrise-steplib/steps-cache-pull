@@ -262,11 +262,14 @@ func main() {
 
 	cacheRecorderReader.Restore()
 
-	currentStackID := strings.TrimSpace(conf.StackID)
-	if len(currentStackID) > 0 {
+	currentStackInfo := archiveInfo{
+		StackID:     strings.TrimSpace(conf.StackID),
+		Arhitecture: currentArchitecture,
+	}
+	if len(currentStackInfo.StackID) > 0 {
 		fmt.Println()
 		log.Infof("Checking archive and current stacks")
-		log.Printf("current stack id: %s", currentStackID)
+		log.Printf("current stack: %s", currentStackInfo)
 
 		if filepath.Base(hdr.Name) == "archive_info.json" {
 			b, err := ioutil.ReadAll(r)
@@ -278,12 +281,7 @@ func main() {
 			if err != nil {
 				failf("Failed to parse first archive entry: %s", err)
 			}
-			log.Printf("archive stack id: %s", archiveStackInfo)
-
-			currentStackInfo := archiveInfo{
-				StackID:     currentStackID,
-				Arhitecture: currentArchitecture,
-			}
+			log.Printf("archive stack: %s", archiveStackInfo)
 
 			if !isSameStack(archiveStackInfo, currentStackInfo) {
 				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackInfo, currentStackInfo)
