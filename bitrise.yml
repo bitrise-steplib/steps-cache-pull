@@ -36,6 +36,8 @@ workflows:
   local_stack_change_test:
     envs:
     - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_local_stack_change_test
+    before_run:
+    - _set_valid_stackid
     steps:
     - script:
         title: Cleanup $TMP_DIR
@@ -58,7 +60,7 @@ workflows:
             set -ex
 
             echo "test" > "$TMP_DIR/File.txt"
-            echo '{ "stack_id": "Wrong Stack ID" }' > "/tmp/archive_info.json"
+            echo '{ "stack_id": "nonmatching-id", "architecture": "nonmatching-arch" }' > "/tmp/archive_info.json"
             tar -cvf "archive.tar.gz" "/tmp/archive_info.json" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
             envman add --key "CACHE_ARCHIVE_URL" --value "file://$TMP_DIR/archive.tar.gz"
@@ -85,6 +87,9 @@ workflows:
   local_gzip_test:
     envs:
     - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_local_gzip_test
+    before_run:
+    - _set_golang_arch
+    - _set_valid_stackid
     steps:
     - script:
         title: Cleanup $TMP_DIR
@@ -107,12 +112,7 @@ workflows:
             set -ex
 
             echo "test" > "$TMP_DIR/File.txt"
-
-            ARCH=$(uname -m)
-            if [[ "$ARCH" == "x86_64" ]]; then
-                ARCH="amd64"
-            fi
-            echo { \"stack_id\": \"${BITRISEIO_STACK_ID}\", \"architecture\": \"${ARCH}\" } > $TMP_DIR/archive_info.json
+            echo { \"stack_id\": \"${BITRISEIO_STACK_ID}\", \"architecture\": \"$GO_ARCH\" } > $TMP_DIR/archive_info.json
             tar -cvf "archive.tar.gz" "archive_info.json" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
             envman add --key "CACHE_ARCHIVE_URL" --value "file://$TMP_DIR/archive.tar.gz"
@@ -139,6 +139,9 @@ workflows:
   local_tar_test:
     envs:
     - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_local_tar_test
+    before_run:
+    - _set_golang_arch
+    - _set_valid_stackid
     steps:
     - script:
         title: Cleanup $TMP_DIR
@@ -161,12 +164,7 @@ workflows:
             set -ex
 
             echo "test" > "$TMP_DIR/File.txt"
-
-            ARCH=$(uname -m)
-            if [[ "$ARCH" == "x86_64" ]]; then
-                ARCH="amd64"
-            fi
-            echo { \"stack_id\": \"${BITRISEIO_STACK_ID}\", \"architecture\": \"${ARCH}\" } > $TMP_DIR/archive_info.json
+            echo { \"stack_id\": \"${BITRISEIO_STACK_ID}\", \"architecture\": \"$GO_ARCH\" } > $TMP_DIR/archive_info.json
             tar -cvf "archive.tar" "archive_info.json" "File.txt"
             rm -rf "$TMP_DIR/File.txt"
             envman add --key "CACHE_ARCHIVE_URL" --value "file://$TMP_DIR/archive.tar"
@@ -193,6 +191,8 @@ workflows:
   remote_cache_test:
     envs:
     - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_remote_cache_test
+    before_run:
+    - _set_empty_stackid
     steps:
     - script:
         title: Cleanup $TMP_DIR
@@ -203,7 +203,6 @@ workflows:
             rm -rf "$TMP_DIR"
     - change-workdir:
         title: Switch working dir to $TMP_DIR
-        run_if: true
         inputs:
         - path: $TMP_DIR
         - is_create_path: true
@@ -219,6 +218,7 @@ workflows:
         run_if: true
         inputs:
         - cache_paths: $TMP_DIR/File.txt
+        - cache_api_url: $BITRISE_CACHE_API_URL
     - script:
         title: Remove test File
         inputs:
@@ -245,9 +245,13 @@ workflows:
               echo "File.txt does not exist"
               exit 1
             fi
+
   remote_compressed_test:
     envs:
       - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_remote_compressed_test
+    before_run: 
+      # Ignore Stack ID check due to hardcoded Stack IDs in test archives
+      - _set_empty_stackid
     steps:
       - script:
           title: Cleanup $TMP_DIR
@@ -300,6 +304,9 @@ workflows:
   remote_uncompressed_test:
     envs:
       - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_remote_uncompressed_test
+    before_run: 
+      # Ignore Stack ID check due to hardcoded Stack IDs in test archives
+      - _set_empty_stackid
     steps:
       - script:
           title: Cleanup $TMP_DIR
@@ -328,7 +335,6 @@ workflows:
                   CACHE_ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/macos.tar.gz"
                 fi
                 envman add --key "CACHE_ARCHIVE_URL" --value $CACHE_ARCHIVE_URL
-                envman add --key "BITRISEIO_STACK_ID" --value ""
       - path::./:
           title: Step Test
           run_if: true
@@ -349,6 +355,41 @@ workflows:
                   echo "tmp/archive_info.json does not exist"
                   exit 1
                 fi
+
+  _set_empty_stackid:
+    steps:
+      - script:
+          inputs:
+          - content: |-
+              #!/bin/env bash
+              set -eox pipefail
+
+              BITRISEIO_STACK_ID=""
+              envman add --key "BITRISEIO_STACK_ID" --value ""
+
+  _set_valid_stackid:
+    steps:
+      - script:
+          inputs:
+          - content: |-
+              #!/bin/env bash
+              set -eox pipefail
+
+              if [[ "$BITRISEIO_STACK_ID" == "" ]]; then
+                BITRISEIO_STACK_ID="current-stack-id"
+              fi
+              envman add --key "BITRISEIO_STACK_ID" --value $BITRISEIO_STACK_ID
+
+  _set_golang_arch:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -eox pipefail
+
+            GO_ARCH=$(go env GOARCH)
+            envman add --key GO_ARCH --value $GO_ARCH
 
   audit-this-step:
     steps:
