@@ -188,7 +188,7 @@ func Test_isSameStack(t *testing.T) {
 				StackID:     "osx-xcode-12.3.x",
 				Arhitecture: "amd64",
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "Going from iOS to iOS, same id, same arch",
@@ -205,6 +205,7 @@ func Test_isSameStack(t *testing.T) {
 		{
 			name: "Going from iOS to iOS, same id, different arch",
 			archiveStack: archiveInfo{
+				Version:     2,
 				StackID:     "osx-xcode-12.3.x",
 				Arhitecture: "amd64",
 			},

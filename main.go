@@ -39,6 +39,7 @@ type Config struct {
 }
 
 type archiveInfo struct {
+	Version     uint64 `json:"version,omitempty"`
 	StackID     string `json:"stack_id,omitempty"`
 	Arhitecture string `json:"architecture,omitempty"`
 }
@@ -347,5 +348,13 @@ func isSameStack(archiveStackInfo archiveInfo, currentStackInfo archiveInfo) boo
 	currentStackInfo.StackID = r.ReplaceAllString(currentStackInfo.StackID, "$1")
 	archiveStackInfo.StackID = r.ReplaceAllString(archiveStackInfo.StackID, "$1")
 
-	return archiveStackInfo == currentStackInfo
+	if archiveStackInfo.StackID != currentStackInfo.StackID {
+		return false
+	}
+
+	if archiveStackInfo.Version < 2 {
+		return true
+	}
+
+	return archiveStackInfo.Arhitecture == currentStackInfo.Arhitecture
 }
