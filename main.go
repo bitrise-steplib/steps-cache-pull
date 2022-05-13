@@ -200,15 +200,16 @@ func writeCachePullTimestamp() (err error) {
 }
 
 func main() {
+	const currentArchitecture = runtime.GOARCH
+
 	var conf Config
 	if err := stepconf.Parse(&conf); err != nil {
 		failf(err.Error())
 	}
-	stepconf.Print(conf)
-	log.SetEnableDebugLog(conf.DebugMode)
 
-	var currentArchitecture = runtime.GOARCH
+	stepconf.Print(conf)
 	log.Printf("- architecture: %s", currentArchitecture)
+	log.SetEnableDebugLog(conf.DebugMode)
 
 	if conf.CacheAPIURL == "" {
 		log.Warnf("No Cache API URL specified, there's no cache to use, exiting.")
