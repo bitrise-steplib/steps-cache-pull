@@ -352,9 +352,5 @@ func isSameStack(archiveStackInfo archiveInfo, currentStackInfo archiveInfo) boo
 		return false
 	}
 
-	if archiveStackInfo.Version < 2 {
-		return true
-	}
-
 	return archiveStackInfo.Arhitecture == currentStackInfo.Arhitecture
 }
