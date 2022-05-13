@@ -324,13 +324,11 @@ workflows:
                 if [[ `uname -s` == "linux" ]]
                 then
                   CACHE_ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/linux.tar.gz"
-                  BITRISEIO_STACK_ID="linux-docker-android"
                 else
                   CACHE_ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/macos.tar.gz"
-                  BITRISEIO_STACK_ID="osx-xcode-11.7.x"
                 fi
                 envman add --key "CACHE_ARCHIVE_URL" --value $CACHE_ARCHIVE_URL
-                envman add --key "BITRISEIO_STACK_ID" --value $BITRISEIO_STACK_ID
+                envman add --key "BITRISEIO_STACK_ID" --value ""
       - path::./:
           title: Step Test
           run_if: true
