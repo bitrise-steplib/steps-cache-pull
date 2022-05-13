@@ -348,5 +348,9 @@ func isSameStack(archiveStackInfo archiveInfo, currentStackInfo archiveInfo) boo
 	currentStackInfo.StackID = r.ReplaceAllString(currentStackInfo.StackID, "$1")
 	archiveStackInfo.StackID = r.ReplaceAllString(archiveStackInfo.StackID, "$1")
 
-	return archiveStackInfo == currentStackInfo
+	if archiveStackInfo.StackID != currentStackInfo.StackID {
+		return false
+	}
+
+	return archiveStackInfo.Arhitecture == currentStackInfo.Arhitecture
 }
