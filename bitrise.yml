@@ -6,6 +6,7 @@ app:
   # define these in your .bitrise.secrets.yml
   - BITRISE_CACHE_API_URL: $BITRISE_CACHE_API_URL
   - ORIG_BITRISE_SOURCE_DIR: $BITRISE_SOURCE_DIR
+  - ORIG_BITRISEIO_STACK_ID: $BITRISEIO_STACK_ID
 
 workflows:
   ci:
@@ -192,6 +193,7 @@ workflows:
     envs:
     - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_remote_cache_test
     before_run:
+    # Do not check Stack to prevent race conditions when running on different stacks parallel
     - _set_empty_stackid
     steps:
     - script:
@@ -375,10 +377,11 @@ workflows:
               #!/bin/env bash
               set -eox pipefail
 
-              if [[ "$BITRISEIO_STACK_ID" == "" ]]; then
-                BITRISEIO_STACK_ID="current-stack-id"
+              if [[ "$ORIG_BITRISEIO_STACK_ID" == "" ]]; then
+                ORIG_BITRISEIO_STACK_ID="current-stack-id"
               fi
-              envman add --key "BITRISEIO_STACK_ID" --value $BITRISEIO_STACK_ID
+              
+              envman add --key "BITRISEIO_STACK_ID" --value $ORIG_BITRISEIO_STACK_ID
 
   _set_golang_arch:
     steps:
