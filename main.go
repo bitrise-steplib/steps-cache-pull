@@ -200,6 +200,7 @@ func writeCachePullTimestamp() (err error) {
 }
 
 func main() {
+	// Possible values of GOARCH: https://go.dev/doc/install/source#environment
 	const currentArchitecture = runtime.GOARCH
 
 	var conf Config
