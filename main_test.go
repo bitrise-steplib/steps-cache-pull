@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func Test_isSameStack(t *testing.T) {
 	tests := []struct {
@@ -188,7 +190,7 @@ func Test_isSameStack(t *testing.T) {
 				StackID:     "osx-xcode-12.3.x",
 				Arhitecture: "amd64",
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "Going from iOS to iOS, same id, same arch",

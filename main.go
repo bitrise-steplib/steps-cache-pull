@@ -295,6 +295,11 @@ func main() {
 
 				os.Exit(0)
 			}
+
+			if isOldArchiveFormat(archiveStackInfo) {
+				log.Warnf("Cache has missing architecture info so default (amd64) architecture is assumed")
+				log.Warnf("Please update your cache-push step to version 2.7.0 or newer")
+			}
 		} else {
 			log.Warnf("cache archive does not contain stack information, skipping stack check")
 		}
@@ -352,5 +357,13 @@ func isSameStack(archiveStackInfo archiveInfo, currentStackInfo archiveInfo) boo
 		return false
 	}
 
+	if isOldArchiveFormat(archiveStackInfo) {
+		return true
+	}
+
 	return archiveStackInfo.Arhitecture == currentStackInfo.Arhitecture
+}
+
+func isOldArchiveFormat(archiveStackInfo archiveInfo) bool {
+	return archiveStackInfo.Version < 2 && archiveStackInfo.Arhitecture == ""
 }
