@@ -317,6 +317,20 @@ workflows:
                   CACHE_ARCHIVE_URL="https://storage.googleapis.com/cache_pull_test_bucket/macos.tar.gz"
                 fi
                 envman add --key "CACHE_ARCHIVE_URL" --value $CACHE_ARCHIVE_URL
+      - script:
+          title: Use the archives stack id
+          inputs:
+            - content: |
+                #!/bin/bash
+                set -ex
+                shopt -s nocasematch
+                if [[ `uname -s` == "linux" ]]
+                then
+                  STACK_ID="linux-docker-android"
+                else
+                  STACK_ID="osx-xcode-11.7.x"
+                fi
+                envman add --key "BITRISEIO_STACK_ID" --value $STACK_ID
       - path::./:
           title: Step Test
           run_if: true
