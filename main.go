@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -190,6 +191,12 @@ func main() {
 func failf(format string, args ...interface{}) {
 	log.Errorf(format, args...)
 	os.Exit(1)
+}
+
+// parseArchiveInfo reads the stack id and architecture from the given json bytes.
+func parseArchiveInfo(b []byte) (info model.ArchiveInfo, err error) {
+	err = json.Unmarshal(b, &info)
+	return
 }
 
 func isSameStack(archiveStackInfo model.ArchiveInfo, currentStackInfo model.ArchiveInfo) bool {
