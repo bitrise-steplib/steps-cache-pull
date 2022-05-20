@@ -215,8 +215,7 @@ workflows:
             # !/bin/env bash
             set -ex
             echo "test" > $TMP_DIR/File.txt
-    - git::https://github.com/bitrise-steplib/steps-cache-push@master:
-    # - cache-push:
+    - cache-push:
         run_if: true
         inputs:
         - cache_paths: $TMP_DIR/File.txt
