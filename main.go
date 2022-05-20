@@ -217,7 +217,7 @@ func isSameStack(archiveStackInfo model.ArchiveInfo, currentStackInfo model.Arch
 }
 
 func isOldArchiveFormat(info model.ArchiveInfo) bool {
-	return info.Version < 2 && info.Architecture == ""
+	return info.Version < model.Version && info.Architecture == ""
 }
 
 func isBitriseCacheAPIURL(url string) bool {
