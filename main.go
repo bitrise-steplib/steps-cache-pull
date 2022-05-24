@@ -106,7 +106,7 @@ func main() {
 		StackID:      strings.TrimSpace(conf.StackID),
 		Architecture: currentArchitecture,
 	}
-	if len(currentStackInfo.StackID) > 0 {
+	if currentStackInfo.StackID != "" {
 		fmt.Println()
 		log.Infof("Checking archive and current stacks")
 		log.Printf("current stack: %s", currentStackInfo)
@@ -134,9 +134,12 @@ func main() {
 				os.Exit(0)
 			}
 
-			if isOldArchiveFormat(archiveStackInfo) {
-				log.Warnf("Cache has missing architecture info so default (amd64) architecture is assumed")
-				log.Warnf("Please update your cache-push step to version 2.7.0 or newer")
+			if archiveStackInfo.Version < model.Version {
+				if archiveStackInfo.Architecture == "" {
+					log.Warnf("Cache has missing architecture info so default (amd64) architecture is assumed")
+				}
+
+				log.Warnf("Please update your cache-push step to the latest version")
 			}
 		} else {
 			log.Warnf("cache archive does not contain stack information, skipping stack check")
@@ -209,15 +212,11 @@ func isSameStack(archiveStackInfo model.ArchiveInfo, currentStackInfo model.Arch
 		return false
 	}
 
-	if isOldArchiveFormat(archiveStackInfo) {
+	if archiveStackInfo.Version < model.Version && archiveStackInfo.Architecture == "" {
 		return true
 	}
 
 	return archiveStackInfo.Architecture == currentStackInfo.Architecture
-}
-
-func isOldArchiveFormat(info model.ArchiveInfo) bool {
-	return info.Version < model.Version && info.Architecture == ""
 }
 
 func isBitriseCacheAPIURL(url string) bool {
