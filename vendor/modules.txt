@@ -10,3 +10,6 @@ github.com/bitrise-io/go-utils/log
 github.com/bitrise-io/go-utils/parseutil
 github.com/bitrise-io/go-utils/pathutil
 github.com/bitrise-io/go-utils/pointers
+# github.com/bitrise-steplib/steps-cache-push v0.0.0-20220520150345-f1aa51a651f8
+## explicit
+github.com/bitrise-steplib/steps-cache-push/model

@@ -2,20 +2,20 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-steplib/steps-cache-push/model"
 )
 
 const (
@@ -37,166 +37,17 @@ type Config struct {
 	BuildSlug string `env:"BITRISE_BUILD_SLUG"`
 }
 
-// downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
-// If the URI points to a local file it returns the local paths.
-func downloadCacheArchive(url string, buildSlug string) (string, error) {
-	if strings.HasPrefix(url, "file://") {
-		return strings.TrimPrefix(url, "file://"), nil
-	}
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Warnf("Failed to close response body: %s", err)
-		}
-	}()
-
-	if resp.StatusCode != 200 {
-		responseBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return "", err
-		}
-
-		return "", fmt.Errorf("non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
-	}
-
-	const cacheArchivePath = "/tmp/cache-archive.tar"
-	f, err := os.Create(cacheArchivePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open the local cache file for write: %s", err)
-	}
-
-	var bytesWritten int64
-	bytesWritten, err = io.Copy(f, resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	data := map[string]interface{}{
-		"cache_archive_size": bytesWritten,
-		"build_slug":         buildSlug,
-	}
-	log.Debugf("Size of downloaded cache archive: %d Bytes", bytesWritten)
-	log.RInfof(stepID, "cache_fallback_archive_size", data, "Size of downloaded cache archive: %d Bytes", bytesWritten)
-
-	return cacheArchivePath, nil
-}
-
-// performRequest performs an http request and returns the response's body, if the status code is 200.
-func performRequest(url string) (io.ReadCloser, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != 200 {
-		defer func() {
-			if err := resp.Body.Close(); err != nil {
-				log.Warnf("Failed to close response body: %s", err)
-			}
-		}()
-
-		responseBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		return nil, fmt.Errorf("non success response code: %d, body: %s", resp.StatusCode, string(responseBytes))
-	}
-
-	return resp.Body, nil
-}
-
-// getCacheDownloadURL gets the given build's cache download URL.
-func getCacheDownloadURL(cacheAPIURL string) (string, error) {
-	req, err := http.NewRequest("GET", cacheAPIURL, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %s", err)
-	}
-
-	client := &http.Client{Timeout: 20 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to send request: %s", err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Warnf("Failed to close response body: %s", err)
-		}
-	}()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("request sent, but failed to read response body (http-code: %d): %s", resp.StatusCode, body)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode > 202 {
-		return "", fmt.Errorf("build cache not found: probably cache not initialised yet (first cache push initialises the cache), nothing to worry about ;)")
-	}
-
-	var respModel struct {
-		DownloadURL string `json:"download_url"`
-	}
-	if err := json.Unmarshal(body, &respModel); err != nil {
-		return "", fmt.Errorf("failed to parse JSON response (%s): %s", body, err)
-	}
-
-	if respModel.DownloadURL == "" {
-		return "", errors.New("download URL not included in the response")
-	}
-
-	return respModel.DownloadURL, nil
-}
-
-// parseStackID reads the stack id from the given json bytes.
-func parseStackID(b []byte) (string, error) {
-	type ArchiveInfo struct {
-		StackID string `json:"stack_id,omitempty"`
-	}
-	var archiveInfo ArchiveInfo
-	if err := json.Unmarshal(b, &archiveInfo); err != nil {
-		return "", err
-	}
-	return archiveInfo.StackID, nil
-}
-
-// failf prints an error and terminates the step.
-func failf(format string, args ...interface{}) {
-	log.Errorf(format, args...)
-	os.Exit(1)
-}
-
-func isBitriseCacheAPIURL(url string) bool {
-	return url == os.Getenv("BITRISE_CACHE_API_URL")
-}
-
-func writeCachePullTimestamp() (err error) {
-	f, err := os.Create(cachePullEndTimePath)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if fErr := f.Close(); fErr != nil {
-			err = fErr
-		}
-	}()
-
-	_, err = f.WriteString(strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
-
-	return err
-}
-
 func main() {
+	// Possible values of GOARCH: https://go.dev/doc/install/source#environment
+	const currentArchitecture = runtime.GOARCH
+
 	var conf Config
 	if err := stepconf.Parse(&conf); err != nil {
 		failf(err.Error())
 	}
+
 	stepconf.Print(conf)
+	log.Printf("- architecture: %s", currentArchitecture)
 	log.SetEnableDebugLog(conf.DebugMode)
 
 	if conf.CacheAPIURL == "" {
@@ -251,11 +102,14 @@ func main() {
 
 	cacheRecorderReader.Restore()
 
-	currentStackID := strings.TrimSpace(conf.StackID)
-	if len(currentStackID) > 0 {
+	currentStackInfo := model.ArchiveInfo{
+		StackID:      strings.TrimSpace(conf.StackID),
+		Architecture: currentArchitecture,
+	}
+	if currentStackInfo.StackID != "" {
 		fmt.Println()
 		log.Infof("Checking archive and current stacks")
-		log.Printf("current stack id: %s", currentStackID)
+		log.Printf("current stack: %s", currentStackInfo)
 
 		if filepath.Base(hdr.Name) == "archive_info.json" {
 			b, err := ioutil.ReadAll(r)
@@ -263,21 +117,29 @@ func main() {
 				failf("Failed to read first archive entry: %s", err)
 			}
 
-			archiveStackID, err := parseStackID(b)
+			archiveStackInfo, err := parseArchiveInfo(b)
 			if err != nil {
 				failf("Failed to parse first archive entry: %s", err)
 			}
-			log.Printf("archive stack id: %s", archiveStackID)
+			log.Printf("archive stack: %s", archiveStackInfo)
 
-			if !isSameStack(archiveStackID, currentStackID) {
-				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackID, currentStackID)
-				log.Warnf("Skipping cache pull, because of the stack has changed")
+			if !isSameStack(archiveStackInfo, currentStackInfo) {
+				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackInfo, currentStackInfo)
+				log.Warnf("Skipping cache pull, as the stack has changed")
 
 				if err := writeCachePullTimestamp(); err != nil {
 					failf("Couldn't save cache pull timestamp: %s", err)
 				}
 
 				os.Exit(0)
+			}
+
+			if archiveStackInfo.Version < model.Version {
+				if archiveStackInfo.Architecture == "" {
+					log.Warnf("Cache has missing architecture info so default (amd64) architecture is assumed")
+				}
+
+				log.Warnf("Please update your cache-push step to the latest version")
 			}
 		} else {
 			log.Warnf("cache archive does not contain stack information, skipping stack check")
@@ -326,10 +188,54 @@ func main() {
 	log.Printf("Took: " + time.Since(startTime).String())
 }
 
-func isSameStack(archiveStackID string, currentStackID string) bool {
+// Helpers
+
+// failf prints an error and terminates the step.
+func failf(format string, args ...interface{}) {
+	log.Errorf(format, args...)
+	os.Exit(1)
+}
+
+// parseArchiveInfo reads the stack id and architecture from the given json bytes.
+func parseArchiveInfo(b []byte) (info model.ArchiveInfo, err error) {
+	err = json.Unmarshal(b, &info)
+	return
+}
+
+func isSameStack(archiveStackInfo model.ArchiveInfo, currentStackInfo model.ArchiveInfo) bool {
 	// TODO This check is a temporary solution to support GEN2 VMs having different ids for same stack types
 	r := regexp.MustCompile("^(.+)-gen2.*$")
-	currentStackID = r.ReplaceAllString(currentStackID, "$1")
-	archiveStackID = r.ReplaceAllString(archiveStackID, "$1")
-	return archiveStackID == currentStackID
+	currentStackInfo.StackID = r.ReplaceAllString(currentStackInfo.StackID, "$1")
+	archiveStackInfo.StackID = r.ReplaceAllString(archiveStackInfo.StackID, "$1")
+
+	if archiveStackInfo.StackID != currentStackInfo.StackID {
+		return false
+	}
+
+	if archiveStackInfo.Version < model.Version && archiveStackInfo.Architecture == "" {
+		return true
+	}
+
+	return archiveStackInfo.Architecture == currentStackInfo.Architecture
+}
+
+func isBitriseCacheAPIURL(url string) bool {
+	return url == os.Getenv("BITRISE_CACHE_API_URL")
+}
+
+func writeCachePullTimestamp() (err error) {
+	f, err := os.Create(cachePullEndTimePath)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if fErr := f.Close(); fErr != nil {
+			err = fErr
+		}
+	}()
+
+	_, err = f.WriteString(strconv.FormatInt(time.Now().UnixNano()/int64(time.Millisecond), 10))
+
+	return err
 }
