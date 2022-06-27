@@ -13,3 +13,8 @@ github.com/bitrise-io/go-utils/pointers
 # github.com/bitrise-steplib/steps-cache-push v0.0.0-20220520150345-f1aa51a651f8
 ## explicit
 github.com/bitrise-steplib/steps-cache-push/model
+# github.com/hashicorp/go-cleanhttp v0.5.2
+github.com/hashicorp/go-cleanhttp
+# github.com/hashicorp/go-retryablehttp v0.7.0
+## explicit
+github.com/hashicorp/go-retryablehttp
