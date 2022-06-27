@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/bitrise-io/go-utils/log"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/bitrise-io/go-utils/log"
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
@@ -20,7 +22,7 @@ func downloadCacheArchive(url string, buildSlug string) (string, error) {
 		return strings.TrimPrefix(url, "file://"), nil
 	}
 
-	resp, err := http.Get(url)
+	resp, err := retryablehttp.Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -105,7 +107,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 
 // performRequest performs an http request and returns the response's body, if the status code is 200.
 func performRequest(url string) (io.ReadCloser, error) {
-	resp, err := http.Get(url)
+	resp, err := retryablehttp.Get(url)
 	if err != nil {
 		return nil, err
 	}

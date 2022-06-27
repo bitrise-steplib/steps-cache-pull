@@ -3,3 +3,4 @@ go/pkg/
 .bitrise*
 _tmp*
 .vscode/
+.idea
