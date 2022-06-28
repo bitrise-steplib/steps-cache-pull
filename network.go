@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/hashicorp/go-retryablehttp"
+	"github.com/bitrise-io/go-utils/retry"
 )
+
+var client = retry.NewHTTPClient()
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
 // If the URI points to a local file it returns the local paths.
@@ -22,7 +24,7 @@ func downloadCacheArchive(url string, buildSlug string) (string, error) {
 		return strings.TrimPrefix(url, "file://"), nil
 	}
 
-	resp, err := retryablehttp.Get(url)
+	resp, err := client.Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -71,7 +73,9 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 		return "", fmt.Errorf("failed to create request: %s", err)
 	}
 
-	client := &http.Client{Timeout: 20 * time.Second}
+	retryclient := retry.NewHTTPClient()
+	client := retryclient.StandardClient()
+	client.Timeout = 20 * time.Second
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %s", err)
@@ -107,7 +111,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 
 // performRequest performs an http request and returns the response's body, if the status code is 200.
 func performRequest(url string) (io.ReadCloser, error) {
-	resp, err := retryablehttp.Get(url)
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
