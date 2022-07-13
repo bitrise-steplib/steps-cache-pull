@@ -26,6 +26,7 @@ workflows:
     - local_tar_test
     - local_gzip_test
     - local_stack_change_test
+    - local_stack_change_test_ignore_change
 
   go-tests:
     steps:
@@ -82,6 +83,58 @@ workflows:
 
             if [ -f $TMP_DIR/File.txt ]; then
               echo "File.txt should not exist"
+              exit 1
+            fi
+
+  local_stack_change_test_ignore_change:
+    envs:
+    - TMP_DIR: $ORIG_BITRISE_SOURCE_DIR/_tmp_local_stack_change_test_ignore_change
+    before_run:
+    - _set_valid_stackid
+    steps:
+    - script:
+        title: Cleanup $TMP_DIR
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -ex
+            rm -rf "$TMP_DIR"
+    - change-workdir:
+        title: Switch working dir to $TMP_DIR
+        run_if: true
+        inputs:
+        - path: $TMP_DIR
+        - is_create_path: true
+    - script:
+        title: Create test archive
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -ex
+
+            echo "test" > "$TMP_DIR/File.txt"
+            echo '{ "stack_id": "nonmatching-id", "architecture": "nonmatching-arch" }' > "/tmp/archive_info.json"
+            tar -cvf "archive.tar.gz" "/tmp/archive_info.json" "File.txt"
+            rm -rf "$TMP_DIR/File.txt"
+            envman add --key "CACHE_ARCHIVE_URL" --value "file://$TMP_DIR/archive.tar.gz"
+    - path::./:
+        title: Step Test
+        run_if: true
+        is_skippable: false
+        inputs:
+        - is_debug_mode: true
+        - cache_api_url: $CACHE_ARCHIVE_URL
+        - allow_fallback: "false"
+        - ignore_stack_difference: "true"
+    - script:
+        title: Test if archive uncompressed
+        inputs:
+        - content: |
+            # !/bin/env bash
+            set -ex
+
+            if [ ! -f $TMP_DIR/File.txt ]; then
+              echo "File.txt should exist"
               exit 1
             fi
 
