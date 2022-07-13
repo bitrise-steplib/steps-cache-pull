@@ -32,6 +32,7 @@ type Config struct {
 	DebugMode             bool   `env:"is_debug_mode,opt[true,false]"`
 	AllowFallback         bool   `env:"allow_fallback,opt[true,false]"`
 	ExtractToRelativePath bool   `env:"extract_to_relative_path,opt[true,false]"`
+	IgnoreStackDifference bool   `env:"ignore_stack_difference,opt[true,false]"`
 
 	StackID   string `env:"BITRISEIO_STACK_ID"`
 	BuildSlug string `env:"BITRISE_BUILD_SLUG"`
@@ -123,7 +124,7 @@ func main() {
 			}
 			log.Printf("archive stack: %s", archiveStackInfo)
 
-			if !isSameStack(archiveStackInfo, currentStackInfo) {
+			if !conf.IgnoreStackDifference && !isSameStack(archiveStackInfo, currentStackInfo) {
 				log.Warnf("Cache was created on stack: %s, current stack: %s", archiveStackInfo, currentStackInfo)
 				log.Warnf("Skipping cache pull, as the stack has changed")
 

@@ -95,3 +95,11 @@ inputs:
       value_options:
       - "true"
       - "false"
+  - ignore_stack_difference: "false"
+    opts:
+      title: "Ignore stack difference"
+      summary: "Allow to use the same cache across different Bitrise stacks"
+      is_required: false
+      value_options:
+      - "true"
+      - "false"
