@@ -98,7 +98,7 @@ inputs:
   - ignore_stack_difference: "false"
     opts:
       title: "Ignore stack difference"
-      summary: "Allow to use the same cache across different Bitrise stacks"
+      summary: "Allow to use the same cache across different Bitrise stacks. Use at your own risk, it might cause build problems."
       is_required: false
       value_options:
       - "true"
