@@ -16,6 +16,7 @@ import (
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-steplib/steps-cache-push/model"
+	"github.com/docker/go-units"
 )
 
 const (
@@ -56,7 +57,7 @@ func main() {
 		return
 	}
 
-	startTime := time.Now()
+	downloadStartTime := time.Now()
 
 	var cacheReader io.Reader
 	var cacheURI string
@@ -94,6 +95,9 @@ func main() {
 		}
 	}
 
+	log.Printf("Archive downloaded in %s", time.Since(downloadStartTime).Round(time.Second))
+
+	restoreStartTime := time.Now()
 	cacheRecorderReader := NewRestoreReader(cacheReader)
 
 	r, hdr, compressed, err := readFirstEntry(cacheRecorderReader)
@@ -180,13 +184,13 @@ func main() {
 		log.RInfof(stepID, "cache_archive_size", data, "Size of extracted cache archive: %d Bytes", cacheRecorderReader.BytesRead)
 	}
 
+	size := units.HumanSizeWithPrecision(float64(cacheRecorderReader.BytesRead), 3)
+	log.Printf("Cache archive size: %s", size)
+	log.Printf("Extracted archive contents in %s", time.Since(restoreStartTime).Round(time.Second))
+
 	if err := writeCachePullTimestamp(); err != nil {
 		failf("Couldn't save cache pull timestamp: %s", err)
 	}
-
-	fmt.Println()
-	log.Donef("Done")
-	log.Printf("Took: " + time.Since(startTime).String())
 }
 
 // Helpers
