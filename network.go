@@ -92,6 +92,7 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 202 {
+		log.Debugf("HTTP %d: %s", resp.StatusCode, body)
 		return "", fmt.Errorf("build cache not found: probably cache not initialised yet (first cache push initialises the cache), nothing to worry about ;)")
 	}
 
