@@ -268,11 +268,11 @@ workflows:
             # !/bin/env bash
             set -ex
             echo "test" > $TMP_DIR/File.txt
-#    - cache-push:
-#        run_if: true
-#        inputs:
-#        - cache_paths: $TMP_DIR/File.txt
-#        - cache_api_url: $BITRISE_CACHE_API_URL
+    - cache-push:
+        run_if: true
+        inputs:
+        - cache_paths: $TMP_DIR/File.txt
+        - cache_api_url: $BITRISE_CACHE_API_URL
     - script:
         title: Remove test File
         inputs:
