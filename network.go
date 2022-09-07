@@ -16,6 +16,7 @@ import (
 )
 
 var client = retry.NewHTTPClient()
+var errNoCache = errors.New("no cache entry found")
 
 // downloadCacheArchive downloads the cache archive and returns the downloaded file's path.
 // If the URI points to a local file it returns the local paths.
@@ -91,9 +92,12 @@ func getCacheDownloadURL(cacheAPIURL string) (string, error) {
 		return "", fmt.Errorf("request sent, but failed to read response body (http-code: %d): %s", resp.StatusCode, body)
 	}
 
+	if resp.StatusCode == http.StatusNotFound {
+		return "", errNoCache
+	}
+
 	if resp.StatusCode < 200 || resp.StatusCode > 202 {
-		log.Debugf("HTTP %d: %s", resp.StatusCode, body)
-		return "", fmt.Errorf("build cache not found: probably cache not initialised yet (first cache push initialises the cache), nothing to worry about ;)")
+		return "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, body)
 	}
 
 	var respModel struct {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -83,7 +84,11 @@ func main() {
 		if isBitriseCacheAPIURL(conf.CacheAPIURL) {
 			cacheURI, err = getCacheDownloadURL(conf.CacheAPIURL)
 			if err != nil {
-				failf("Failed to get cache download url: %s", err)
+				if errors.Is(err, errNoCache) {
+					log.Donef("No saved cache found")
+					os.Exit(0)
+				}
+				failf("Failed to get cache download URL: %s", err)
 			}
 		} else {
 			cacheURI = conf.CacheAPIURL
